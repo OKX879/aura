@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 三圈雷达波：白底上用深绿，由外向内逐层加深 -->
+    <path
+        android:pathData="M54,54m-25,0a25,25 0,1 1,50 0a25,25 0,1 1,-50 0"
+        android:fillColor="#00000000"
+        android:strokeColor="#5943593B"
+        android:strokeWidth="1.8" />
+    <path
+        android:pathData="M54,54m-17,0a17,17 0,1 1,34 0a17,17 0,1 1,-34 0"
+        android:fillColor="#00000000"
+        android:strokeColor="#9943593B"
+        android:strokeWidth="1.8" />
+    <path
+        android:pathData="M54,54m-9,0a9,9 0,1 1,18 0a9,9 0,1 1,-18 0"
+        android:fillColor="#00000000"
+        android:strokeColor="#43593B"
+        android:strokeWidth="1.8" />
+    <!-- 扫过的扇区：外圈上一段琥珀弧 -->
+    <path
+        android:pathData="M54,29A25,25 0,0 1,75.7 41.5"
+        android:fillColor="#00000000"
+        android:strokeColor="#D4A017"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round" />
+    <!-- 扫描线：从圆心指向右上 -->
+    <path
+        android:pathData="M54,54L71.7,36.3"
+        android:fillColor="#00000000"
+        android:strokeColor="#D4A017"
+        android:strokeWidth="2.4"
+        android:strokeLineCap="round" />
+    <!-- 圆心：琥珀色信标 -->
+    <path
+        android:fillColor="#D4A017"
+        android:pathData="M54,54m-4.2,0a4.2,4.2 0,1 1,8.4 0a4.2,4.2 0,1 1,-8.4 0" />
+</vector>

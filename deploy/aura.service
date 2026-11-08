@@ -1,0 +1,35 @@
+[Unit]
+Description=AURA backend service
+After=network.target aura-ch347.service
+
+[Service]
+Type=simple
+# 部署路径，data/ 下存数据库和配对码
+WorkingDirectory=/opt/aura/app
+Environment=AURA_BIND=0.0.0.0
+Environment=AURA_PORT=3000
+Environment=AURA_DB_PATH=/opt/aura/app/data/aura.db
+Environment=AURA_UI_ROOT=/opt/aura/app/ui
+# 回放数据，硬件雷达启用时忽略
+#Environment=AURA_LIVE_CUBE=/opt/aura/recordings/sample_cube.bin
+#Environment=AURA_LIVE_META=/opt/aura/recordings/sample.json
+Environment=AURA_LIVE_SPEED=1.0
+Environment=AURA_RADAR_ENABLE=1
+Environment=AURA_RADAR_SPIDEV=/dev/spidev8.0
+Environment=AURA_RADAR_UART=/dev/ttyACM0
+Environment=AURA_RADAR_SPI_HZ=8000000
+Environment=AURA_RADAR_POLL_DELAY_US=4000
+Environment=AURA_RADAR_READY_GPIO=-1
+Environment=AURA_RADAR_SIMPLEX=0
+Environment=AURA_DEVICE_SERIAL=AURA-6240-001
+# 对外地址，写入局域网发现报文
+Environment=AURA_DEVICE_ENDPOINT=
+Environment=AURA_VITALS_INTERVAL_MIN=10
+ExecStart=/opt/aura/app/AuraService
+Restart=always
+RestartSec=3
+# 需要访问 spi/uart 设备
+User=root
+
+[Install]
+WantedBy=multi-user.target

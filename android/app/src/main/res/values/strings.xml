@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AURA</string>
+    <string name="login_title">欢迎回到 Aura</string>
+    <string name="login_subtitle">专注管理，从登录开始</string>
+    <string name="email_hint">邮箱</string>
+    <string name="password_hint">密码</string>
+    <string name="login_button">登录</string>
+    <string name="dashboard_title">首页</string>
+    <string name="devices_title">设备</string>
+    <string name="alerts_title">告警</string>
+    <string name="profile_title">我的</string>
+</resources>
