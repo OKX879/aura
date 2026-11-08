@@ -175,7 +175,7 @@ Capsule 单例只有 30 s，短于 33.2 s 的启动门槛（预热 3 s + 窗长 
 
 | 数据集 | 论文地址 | 许可 |
 |---|---|---|
-| Capsule | **待补**：需补充该数据集的论文或 DOI（本地目录名含 4604022，未能核实到公开记录页） | CC0 1.0 |
+| Capsule | Zhang B-B, et al. *Monitoring Long-term Cardiac Activity with Contactless Radio Frequency Signals*；数据与代码：[Code Ocean capsule 4604022](https://codeocean.com/capsule/4604022) | CC0 1.0 |
 | emo | Cai J-H, Zhang X, …, Zhou H. *An emotion recognition dataset using millimeter wave radar and physiological reference signals*. Scientific Data, 2026-04-06. [论文页](https://www.semanticscholar.org/paper/161a1c1497bc993624efd380ccd2e6e82af70d40) | 以论文许可为准 |
 
 引用数据时请引用上表论文，不要引用本仓库。**本产品不是医疗器械，以下数字不构成临床验证，不得用于诊断或监护。**
