@@ -1371,14 +1371,14 @@ $T_w=10.24$ s、$\Delta t=1$ s 时重叠 90.2%。随机逐行切分会让测试�
 
 #### 数据集来源
 
-| 数据集 | 本地标识 | 内容 | 金标 | 许可与引用 |
+| 数据集 | 论文地址 | 内容 | 金标 | 许可与引用 |
 |---|---|---|---|---|
-| Capsule | `capsule-4604022-data/Minimum_dataset` | 20 例 `patient_*.mat`，每例 3000 帧，100 Hz，8 通道 × 30 距离门复数 cube | 同步 ECG，R 峰 | 随附 **CC0 1.0**；引用时须注明数据集标识与本地版本，不得改写原始标签 |
-| emo | `emo_dataset`（原始 `raw/_multi`，导出 `processed/02_processed_data/mmwave`） | 38 个 trial，每个约 20 s，100 Hz | 同步 PPG，峰间期中位数 | 发表于 Cai 等，*Scientific Data*（2026-04-06，Nature 旗下），题为 *An emotion recognition dataset using millimeter wave radar and physiological reference signals*；许可与数据可用性以论文为准，本地副本未随附许可文件 |
+| Capsule | **待补**（编号 4604022 出自本地目录名，未核实到公开记录页） | 20 例 `patient_*.mat`，每例 3000 帧，100 Hz，8 通道 × 30 距离门复数 cube | 同步 ECG，R 峰 | 随附 **CC0 1.0**；引用时须补全论文出处，不得改写原始标签 |
+| emo | Cai 等，*An emotion recognition dataset using millimeter wave radar and physiological reference signals*，Scientific Data，2026-04-06（[论文页](https://www.semanticscholar.org/paper/161a1c1497bc993624efd380ccd2e6e82af70d40)） | 38 个 trial，每个约 20 s，100 Hz | 同步 PPG，峰间期中位数 | 许可与数据可用性以论文为准 |
 
 两个数据集均只用于**算法精度评估**，未参与任何参数调优以外的用途；本文不复制其原始数据，只报告指标。
 
-> **出处核实状态**：本仓库不分发任何原始数据。Capsule 的许可（CC0 1.0）来自随包 `LICENSE` 文件。emo 已确认来自 *Scientific Data*（2026-04-06）的数据论文；引用时须引用该论文而非本仓库，具体 DOI 与许可条款以论文页面为准，本地副本未随附许可文件。
+> **出处核实状态**：本仓库不分发任何原始数据。emo 已确认对应 Scientific Data（2026-04-06）的数据论文，引用时须引用该论文而非本仓库，具体 DOI 与许可条款以论文页面为准。Capsule 的论文出处尚未核实，**对外发布前必须补全**；其 CC0 1.0 许可来自随包 `LICENSE` 文件。
 
 #### 测试口径
 
