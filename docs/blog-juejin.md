@@ -336,7 +336,7 @@ App 里直接填 `https://<board>.<tailnet>.ts.net` 就能连。
 
 ## 开源
 
-代码：https://github.com/<your-name>/aura
+代码：https://github.com/OKX879/aura
 
 MIT 协议。原始测量数据涉及个人体征，没有随仓库发布；验证脚本在没有数据时只做算法自检。
 

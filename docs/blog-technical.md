@@ -162,7 +162,7 @@ PPI 的权重直接跟搏动数挂钩。10 秒窗里只有 8–10 个搏动，�
 
 ## 开源
 
-代码在这里：https://github.com/<your-name>/aura
+代码在这里：https://github.com/OKX879/aura
 
 仓库包含：
 

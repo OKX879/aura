@@ -369,7 +369,7 @@ $$
 
 ## 十、开源
 
-代码：https://github.com/<your-name>/aura
+代码：https://github.com/OKX879/aura
 
 - `algorithm/`：本文涉及的全部算法，纯 C，无硬件依赖
 - `tools/verify/`：离线复算脚本，包含本文用到的谱分析和逐路复现
