@@ -74,7 +74,7 @@ install -Dm755 service/build/AuraService ${INSTALL_DIR:-/opt/aura/app}/AuraServi
 | `AURA_DEVICE_MODEL` | `MRS6240-P2512` | 型号，写入 `devices.model` 与发现报文 |
 | `AURA_DEVICE_FIRMWARE` | `r3_databox_v2.0.6` | 固件版本，写入 `devices.firmware_version` |
 | `AURA_DEVICE_ENDPOINT` | 空 | 对外地址；空则由发现线程按本机地址补 |
-| `AURA_VITALS_INTERVAL_MIN` | `10` | 体征落库最小间隔（秒） |
+| `AURA_VITALS_INTERVAL_MIN` | `10` | 体征定时落库间隔（**分钟**，最小 1） |
 | `AURA_LIVE_CUBE` / `AURA_LIVE_META` | 注释 | 回放模式：给文件即不启雷达 |
 | `AURA_LIVE_SPEED` | `1.0` | 回放倍速 |
 

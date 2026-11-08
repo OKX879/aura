@@ -88,15 +88,11 @@ SPI 复数立方体 (8 通道 × 30 距离门)
 
 | 文档 | 内容 | 什么时候看 |
 |---|---|---|
-| [docs/architecture.md](docs/architecture.md) | 分层、板端四类工作、数据库表、26 个 REST 路由、App 结构 | 改代码、对接接口 |
-| [docs/algorithm.md](docs/algorithm.md) | 每一级的参数、为什么这么取、失效模式 | 调算法、查参数 |
-| [docs/verification.md](docs/verification.md) | 导出原始位移、离线复算、各轮结果 | 怀疑数字不对 |
-| [docs/hardware.md](docs/hardware.md) | 物料、设备节点、雷达启动序列、已知硬件问题 | 第一次接线 |
+| [docs/architecture.md](docs/architecture.md) | 进程模型、配置项、REST 接口、数据模型、部署 | 改代码、对接接口 |
+| [docs/algorithm.md](docs/algorithm.md) | 每一级的参数、为什么这么取、失效模式、公开数据集精度 | 调算法、查参数 |
+| [docs/hardware.md](docs/hardware.md) | 物料、设备节点、射频配置、HIF 协议、帧格式、验收 | 第一次接线 |
 | [docs/deploy.md](docs/deploy.md) | 从裸机到能跑服务、排障表、环境变量总表 | 要部署一台 |
 | [docs/remote-access.md](docs/remote-access.md) | 5 种公网访问方案与安全清单 | 要在外面看数据 |
-| [docs/blog-technical.md](docs/blog-technical.md) | 踩坑复盘：四个坑，以及板端与离线复算的偏差怎么压到 0.3 BPM | 想读过程 |
-| [docs/blog-juejin.md](docs/blog-juejin.md) | 开源发布文：能力清单、分层设计、部署 | 想先看全貌 |
-| [docs/blog-algorithm.md](docs/blog-algorithm.md) | 五层信号处理链的推导与公开数据集验证 | 想啃原理 |
 
 ## 快速开始
 
@@ -173,7 +169,7 @@ cd android
 | 心率 | 64.3 BPM | 64.0 BPM | +0.3 BPM |
 | 呼吸 | 18.4 次/分 | 18.5 次/分 | −0.0 次/分 |
 
-方法和数据采集流程见 [docs/verification.md](docs/verification.md)。原始位移数据不随仓库发布。
+指标定义、真值层级与公开数据集精度见 [docs/algorithm.md](docs/algorithm.md) 第 11 章。原始位移数据不随仓库发布。
 
 ## 已知限制
 

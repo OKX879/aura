@@ -343,4 +343,4 @@ sqlite3 /opt/aura/app/data/aura.db ".backup '/tmp/aura.db'"
 | `AURA_DEVICE_ENDPOINT` | 空 | 对外地址，写进局域网发现报文 |
 | `AURA_OWNER_EMAIL` | `mobile@aura.local` | 体征落库归属的账号 |
 | `AURA_VITALS_INTERVAL_MIN` | `10` | 体征落库间隔（分钟） |
-| `AURA_PHASE_DUMP` / `AURA_SNAP_DUMP` | 未设即不导出 | 诊断导出开关，见 [verification.md](verification.md) |
+| `AURA_PHASE_DUMP` / `AURA_SNAP_DUMP` | 未设即不导出 | 诊断导出开关，用于离线复算 |
