@@ -4,8 +4,8 @@
 
 | 部件 | 型号 | 说明 |
 |---|---|---|
-| 主控 | RDK X5 | aarch64，Ubuntu 22.04，跑 `AuraService` |
-| 雷达 | RS6240 模组 | 60 GHz 毫米波，雷达命令里配置为 57–66 GHz |
+| 主控 | 地瓜派 RDK X5（D-Robotics） | aarch64，Ubuntu 22.04，跑 `AuraService` |
+| 雷达 | 正和微芯 RS6240 模组 | 60 GHz 毫米波，雷达命令里配置为 57–66 GHz |
 | 转接 | CH347 | USB 转 SPI + UART，`1a86:55db` |
 | 手机 | Android 8.0+ | 跑 App，与板卡同一局域网 |
 
