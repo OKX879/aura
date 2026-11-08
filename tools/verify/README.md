@@ -31,13 +31,7 @@ python replay_board_hr.py --phase phase.csv --snap snap.csv
 python spectrum_check.py --phase phase.csv --lo 0.14 --hi 0.50
 ```
 
-`compare_export.py` 会打印：
-
-```
-参考值（后 30 秒）: 心率 64.0 BPM   呼吸 18.5 次/分
-板端输出: 心率中位 64.3   呼吸中位 18.4
-偏差: 心率 +0.3 BPM   呼吸 -0.0 次/分
-```
+`compare_export.py` 会打印样本概况，然后是四项：参考值（心率、呼吸、呼吸 SNR）、板端心率的中位/范围/标准差、心率偏差、板端呼吸同上与呼吸偏差。`--tail` 控制参考值取末尾多少秒，默认 30。
 
 ## 注意
 

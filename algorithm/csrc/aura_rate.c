@@ -43,6 +43,36 @@ static double round1(double v) {
     return round(v * 10.0) / 10.0;
 }
 
+/* 取跨度不超过 range 的最大簇，返回簇样本数，簇中位数写入 *med。
+ * 首锚兜底用：双峰输入（一半谐波倍频、一半真值）取全体中位会落到错峰，
+ * 最大簇始终贴着主群体。与 Python 侧 _largest_cluster 同一策略。 */
+static int largest_cluster(const double *bank, int n, double range, double *med) {
+    double b[8];
+    int i, j, start = 0, best_len = 1, best_start = 0;
+    if (!bank || n <= 0) { if (med) *med = 0.0; return 0; }
+    if (n > 8) n = 8;
+    memcpy(b, bank, (size_t)n * sizeof(double));
+    for (i = 1; i < n; ++i) {
+        double v = b[i];
+        j = i - 1;
+        while (j >= 0 && b[j] > v) { b[j + 1] = b[j]; --j; }
+        b[j + 1] = v;
+    }
+    for (i = 0; i < n; ++i) {
+        while (b[i] - b[start] > range) ++start;
+        if (i - start + 1 > best_len) {
+            best_len = i - start + 1;
+            best_start = start;
+        }
+    }
+    if (med) {
+        int m = best_len;
+        if (m % 2) *med = b[best_start + m / 2];
+        else *med = 0.5 * (b[best_start + m / 2 - 1] + b[best_start + m / 2]);
+    }
+    return best_len;
+}
+
 void aura_rate_tracker_init(aura_rate_tracker *t) {
     if (!t) return;
     memset(t, 0, sizeof(*t));
@@ -100,24 +130,19 @@ int aura_rate_tracker_update(aura_rate_tracker *t, double value,
     }
     v = value;
     if (!t->has_value || t->hlen == 0) {
-        int ready = 0;
-        push_capped(t->seed_bank, &t->sb_len, t->seed_streak, v);
+        int ready = 0, cn;
+        double cmed = 0.0;
+        /* bank 保留 seed_max_tries 个样本：双峰输入必须留够样本才能分出簇 */
+        push_capped(t->seed_bank, &t->sb_len, t->seed_max_tries, v);
         t->seed_tries++;
-        if (t->sb_len >= t->seed_streak) {
-            double mn = t->seed_bank[0], mx = t->seed_bank[0];
-            int i;
-            for (i = 1; i < t->sb_len; ++i) {
-                if (t->seed_bank[i] < mn) mn = t->seed_bank[i];
-                if (t->seed_bank[i] > mx) mx = t->seed_bank[i];
-            }
-            ready = (mx - mn <= t->seed_range);
-        }
+        cn = largest_cluster(t->seed_bank, t->sb_len, t->seed_range, &cmed);
+        ready = (cn >= t->seed_streak);
         if (!ready && t->seed_tries >= t->seed_max_tries) ready = 1;
         if (!ready) {
             if (out) *out = t->has_value ? round1(t->value) : NAN;
             return 0;
         }
-        t->value = dmedian(t->seed_bank, t->sb_len);
+        t->value = cmed;
         t->has_value = 1;
         t->hlen = 0;
         push_capped(t->history, &t->hlen, t->history_size, t->value);

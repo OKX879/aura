@@ -74,12 +74,20 @@ rm -rf /etc/systemd/system/aura.service.d && systemctl daemon-reload && systemct
 
 ## 复现步骤
 
+三个脚本都在 `tools/verify/`，先装依赖：
+
 ```bash
+pip install numpy scipy
 cd tools/verify
-python replay_board_hr.py --phase phase.csv --snap snap.csv
+
+python compare_export.py  --phase phase.csv --snap snap.csv      # 参考值 vs 板端输出
+python replay_board_hr.py --phase phase.csv --snap snap.csv      # 逐秒复现板端 FFT 路
+python spectrum_check.py  --phase phase.csv --lo 0.14 --hi 0.50  # 呼吸频带与谐波诊断
 ```
 
-脚本会打印逐秒的板端复现值、真值锚点和偏差。没有原始数据时，脚本只做算法自检，不产生结论。
+`compare_export.py` 依次打印样本概况、参考值、板端心率的中位/范围/标准差、心率偏差，再对呼吸重复一遍——「各轮结果」里第 7 轮那几行数字就是它的输出。`replay_board_hr.py` 逐秒打印板端复现值与偏差，用来判断 FFT 是否被谐波带偏；`spectrum_check.py` 换不同下边界重跑呼吸估计，用来复现"0.14 Hz 锁在 10.5、0.18 Hz 回到 18.5"这个对比。
+
+没有原始数据时，脚本只做算法自检，不产生结论。
 
 ## 已知未解决项
 

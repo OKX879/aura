@@ -4,7 +4,6 @@
 
 项目最初是为了做一台"坐着就能看到自己状态"的桌面设备：不戴手环、不贴电极，雷达从胸腔的微小位移里把呼吸和心跳分离出来。
 
-
 > 这是原型项目，不是医疗器械。测出来的数字不能用于诊断，也不要在任何安全攸关的场景里依赖它。
 
 ## 能做什么
@@ -81,9 +80,23 @@ SPI 复数立方体 (8 通道 × 30 距离门)
 | `service/` | Drogon C++ 服务：REST API、鉴权、SQLite、局域网发现、设备心跳 |
 | `android/` | Kotlin + Jetpack Compose App |
 | `deploy/` | systemd unit、udev 规则、CH347 初始化脚本、构建脚本 |
-| `docs/` | 架构、算法、验证、硬件、部署、公网访问，以及发布用文稿 |
+| `docs/` | 架构、算法、验证、硬件、部署、公网访问，以及发布用文稿（索引见下方「文档」） |
 | `tools/verify/` | 用导出的原始位移做离线复算与偏差对比的脚本 |
 | `.trae/skills/aura-deploy/` | 面向 agent 的全流程部署 Skill，含 7 个可重复执行的脚本 |
+
+## 文档
+
+| 文档 | 内容 | 什么时候看 |
+|---|---|---|
+| [docs/architecture.md](docs/architecture.md) | 分层、板端四类工作、数据库表、26 个 REST 路由、App 结构 | 改代码、对接接口 |
+| [docs/algorithm.md](docs/algorithm.md) | 每一级的参数、为什么这么取、失效模式 | 调算法、查参数 |
+| [docs/verification.md](docs/verification.md) | 导出原始位移、离线复算、各轮结果 | 怀疑数字不对 |
+| [docs/hardware.md](docs/hardware.md) | 物料、设备节点、雷达启动序列、已知硬件问题 | 第一次接线 |
+| [docs/deploy.md](docs/deploy.md) | 从裸机到能跑服务、排障表、环境变量总表 | 要部署一台 |
+| [docs/remote-access.md](docs/remote-access.md) | 5 种公网访问方案与安全清单 | 要在外面看数据 |
+| [docs/blog-technical.md](docs/blog-technical.md) | 踩坑复盘：四个坑，以及板端与离线复算的偏差怎么压到 0.3 BPM | 想读过程 |
+| [docs/blog-juejin.md](docs/blog-juejin.md) | 开源发布文：能力清单、分层设计、部署 | 想先看全貌 |
+| [docs/blog-algorithm.md](docs/blog-algorithm.md) | 五层信号处理链的推导与公开数据集验证 | 想啃原理 |
 
 ## 快速开始
 
@@ -113,7 +126,7 @@ INSTALL_DIR=/opt/aura/app ./deploy/build_service.sh
 
 ### 3. 部署到开发板
 
-前置条件：RDK X5 需要先编译安装 CH347 内核模块 `ch34x_mphsi_master`，否则不会出现 `/dev/spidev8.0`。这一步和 Drogon 的编译安装都在部署手册里：
+前置条件：RDK X5 需要先编译安装 CH347 内核模块 `ch34x_mphsi_master`，否则不会出现 `/dev/spidev8.0`；`/opt/aura/app/data/aura.db` 也要自带表结构，服务只建库不建表。这一步和 Drogon 的编译安装都在部署手册里：
 
 ```bash
 sudo install -m 755 deploy/aura-ch347-setup.sh /usr/local/bin/

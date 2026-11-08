@@ -11,7 +11,7 @@
 ├── app/
 │   ├── AuraService            可执行文件
 │   ├── data/
-│   │   ├── aura.db            SQLite
+│   │   ├── aura.db            SQLite（需自带表结构，见第 6 节）
 │   │   └── .pair-code         6 位配对码
 │   └── ui/                    可选，Web 前端静态文件
 ├── algorithm/                 libaura 源码与 libaura.a
@@ -182,6 +182,19 @@ sudo udevadm control --reload-rules
 sudo systemctl daemon-reload
 ```
 
+### 数据库需要自带表结构
+
+`AuraService` 启动时只建库文件、不建表：它用 `SQLITE_OPEN_CREATE` 打开 `AURA_DB_PATH`，然后设 PRAGMA，并对 `devices.endpoint_url`、`users.avatar` 各补一列兜底。表结构得由现成的 `aura.db` 带进来，否则 `/auth/*`、`/devices`、`/focus-data/*` 全部返回 `no such table`。
+
+启动前先确认：
+
+```bash
+sqlite3 /opt/aura/app/data/aura.db ".tables"
+# 期望：alerts  devices  focus_records  rooms  settings  users
+```
+
+少任何一张，服务能起来、`/health` 也是 `ok`，但除了探活以外的接口全废——这是这套服务最容易误判的失败模式。
+
 `/opt/aura/app/ui` 是可选的 Web 前端目录，没有也能跑，App 不依赖它。
 
 ## 7. 启动
@@ -274,6 +287,8 @@ sudo sqlite3 /opt/aura/app/data/aura.db ".backup '/opt/aura/backup/aura-$(date +
 
 | 现象 | 原因 | 处理 |
 |---|---|---|
+| 启动即退出，日志 `Cannot find backend/database/aura.db` | 没设 `AURA_DB_PATH`，默认会在 `./backend/database/` 下找 | 确认 `aura.service` 里的 `AURA_DB_PATH` 生效；手跑时手动 export |
+| 接口报 `no such table`，但 `/health` 是 `ok` | `aura.db` 没有表结构 | 见第 6 节，换成带 schema 的库 |
 | `cannot open /dev/spidev8.0` | 内核模块没加载，或总线号变了 | `lsmod \| grep ch34x`；`ls /sys/bus/spi/devices`；重跑 `aura-ch347-setup.sh` |
 | 只有 `/dev/ttyACM0`，没有 spidev | CH347 只枚举了串口 | 确认驱动装的是 `ch34x_mphsi_master`，不是 `ch341` 串口驱动 |
 | `no reply to 'mmwc ...'` | 串口被占用，或雷达没上电 | `fuser -v /dev/ttyACM0`；检查雷达供电 |
@@ -303,3 +318,29 @@ sqlite3 /opt/aura/app/data/aura.db ".backup '/tmp/aura.db'"
 ```
 
 体征落库间隔由 `AURA_VITALS_INTERVAL_MIN` 控制，默认 10 分钟一条。
+
+## 12. 环境变量
+
+`aura.service` 里已经把板端要用的都设好了，走 systemd 就不用管这一节；手跑二进制、换机器或改端口时才需要自己给。默认值取自代码，不设就是这个。
+
+| 变量 | 默认 | 作用 |
+|---|---|---|
+| `AURA_DB_PATH` | 无（依次找 `./backend/database/aura.db` 等三处） | SQLite 路径，找不到直接退出 |
+| `AURA_BIND` | `127.0.0.1` | 监听地址。默认只有本机能访问，`aura.service` 里改成了 `0.0.0.0`；手跑时不改，App 连不上 |
+| `AURA_PORT` | `3000` | 监听端口 |
+| `AURA_UI_ROOT` | 无（找含 `index.html` 的目录） | 可选的 Web 前端根目录 |
+| `AURA_RADAR_ENABLE` | 未设即关闭 | 设 `1` 才启动雷达采帧线程 |
+| `AURA_RADAR_SPIDEV` | `/dev/spidev8.0` | 雷达数据通道 |
+| `AURA_RADAR_UART` | `/dev/ttyACM0` | 雷达命令行 |
+| `AURA_RADAR_SPI_HZ` | `8000000` | SPI 时钟 |
+| `AURA_RADAR_POLL_DELAY_US` | `4000` | 采帧线程两次读取之间的等待 |
+| `AURA_RADAR_READY_GPIO` | `-1`（不用） | 雷达 ready 引脚 |
+| `AURA_RADAR_SIMPLEX` | `0` | 设 `1` 启用 HIF 单工模式 |
+| `AURA_LIVE_CUBE` / `AURA_LIVE_META` | 未设即不启用 | 用录好的 cube 回放代替硬件，硬件雷达启用时被忽略 |
+| `AURA_LIVE_SPEED` | `1.0` | 回放倍速 |
+| `AURA_DEVICE_SERIAL` | `AURA-6240-001` | 设备序列号，写进 `devices` 表 |
+| `AURA_DEVICE_NAME` / `AURA_DEVICE_MODEL` / `AURA_DEVICE_FIRMWARE` | `AURA 雷达（本机）` / `MRS6240-P2512` / `r3_databox_v2.0.6` | 设备元信息 |
+| `AURA_DEVICE_ENDPOINT` | 空 | 对外地址，写进局域网发现报文 |
+| `AURA_OWNER_EMAIL` | `mobile@aura.local` | 体征落库归属的账号 |
+| `AURA_VITALS_INTERVAL_MIN` | `10` | 体征落库间隔（分钟） |
+| `AURA_PHASE_DUMP` / `AURA_SNAP_DUMP` | 未设即不导出 | 诊断导出开关，见 [verification.md](verification.md) |
