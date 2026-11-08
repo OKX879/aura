@@ -176,9 +176,9 @@ Capsule 单例只有 30 s，短于 33.2 s 的启动门槛（预热 3 s + 窗长 
 | 数据集 | 本地副本 | 许可 | 官方出处 |
 |---|---|---|---|
 | Capsule | `capsule-4604022-data/Minimum_dataset`，20 例 `patient_*.mat`，每例 3000 帧 | **CC0 1.0**（随包 LICENSE） | 编号 4604022 取自目录名；官方落地页未随仓库保存，对外引用前须自行核对 |
-| emo | `emo_dataset`（原始 `raw/_multi`，导出 `processed/02_processed_data/mmwave`），38 trial | **无许可证与引用文件** | 未确认；**仅限内部评估，不得再分发或对外引用** |
+| emo | `emo_dataset`（原始 `raw/_multi`，导出 `processed/02_processed_data/mmwave`），38 trial | 以论文许可为准（本地副本未见许可文件） | Cai J-H, Zhang X, …, Zhou H. *An emotion recognition dataset using millimeter wave radar and physiological reference signals*. Scientific Data, 2026-04-06（Nature 旗下） |
 
-数据集来源、金标定义、口径与许可状态见 [docs/algorithm.md](docs/algorithm.md) 第 11 章。**本产品不是医疗器械，以下数字不构成临床验证，不得用于诊断或监护。**
+引用 emo 数据时请引用上表论文，不要引用本仓库。**本产品不是医疗器械，以下数字不构成临床验证，不得用于诊断或监护。**
 
 ## 已知限制
 
