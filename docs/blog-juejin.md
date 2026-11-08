@@ -59,12 +59,6 @@
 
 其它细节：中英双语、5 套内置壁纸 + 相册背景、AI 助手支持任意 OpenAI 兼容接口（DeepSeek / OpenAI / 通义千问 / 本地 Ollama）。
 
-<p align="center">
-  <img src="images/app-home.png" width="30%" alt="首页" />
-  <img src="images/app-live.png" width="30%" alt="实时监测" />
-</p>
-
-> 截图是开发阶段的演示数据，不是实际测量结果。
 
 ## 系统架构
 

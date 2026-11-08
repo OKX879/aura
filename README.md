@@ -4,10 +4,6 @@
 
 项目最初是为了做一台"坐着就能看到自己状态"的桌面设备：不戴手环、不贴电极，雷达从胸腔的微小位移里把呼吸和心跳分离出来。
 
-<p align="center">
-  <img src="docs/images/app-home.png" width="30%" alt="首页" />
-  <img src="docs/images/app-live.png" width="30%" alt="实时监测" />
-</p>
 
 > 这是原型项目，不是医疗器械。测出来的数字不能用于诊断，也不要在任何安全攸关的场景里依赖它。
 
