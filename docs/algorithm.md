@@ -1373,12 +1373,12 @@ $T_w=10.24$ s、$\Delta t=1$ s 时重叠 90.2%。随机逐行切分会让测试�
 
 | 数据集 | 论文地址 | 内容 | 金标 | 许可与引用 |
 |---|---|---|---|---|
-| Capsule | Zhang B-B 等，*Monitoring Long-term Cardiac Activity with Contactless Radio Frequency Signals*；数据与代码：[Code Ocean capsule 4604022](https://codeocean.com/capsule/4604022) | 20 例 `patient_*.mat`，每例 3000 帧，100 Hz，8 通道 × 30 距离门复数 cube | 同步 ECG，R 峰 | 随附 **CC0 1.0**；引用时须注明论文与本地版本，不得改写原始标签 |
-| emo | Cai 等，*An emotion recognition dataset using millimeter wave radar and physiological reference signals*，Scientific Data，2026-04-06（[论文页](https://www.semanticscholar.org/paper/161a1c1497bc993624efd380ccd2e6e82af70d40)） | 38 个 trial，每个约 20 s，100 Hz | 同步 PPG，峰间期中位数 | 许可与数据可用性以论文为准 |
+| Capsule | ZHANG B B, ZHANG D H, LI Y D, et al. Monitoring long-term cardiac activity with contactless radio frequency signals[J]. Nature Communications, 2024. DOI: 10.1038/s41467-024-55061-9；数据与代码：[Code Ocean capsule 4604022](https://codeocean.com/capsule/4604022) | 20 例 `patient_*.mat`，每例 3000 帧，100 Hz，8 通道 × 30 距离门复数 cube | 同步 ECG，R 峰 | 随附 **CC0 1.0**；引用时须注明论文与本地版本，不得改写原始标签 |
+| emo | CAI J L, ZHANG X Y, PAN Y, et al. An emotion recognition dataset using millimeter wave radar and physiological reference signals[J]. Scientific Data, 2026. DOI: 10.1038/s41597-026-07159-6 | 38 个 trial，每个约 20 s，100 Hz | 同步 PPG，峰间期中位数 | 许可与数据可用性以论文为准 |
 
 两个数据集均只用于**算法精度评估**，未参与任何参数调优以外的用途；本文不复制其原始数据，只报告指标。
 
-> **出处核实状态**：本仓库不分发任何原始数据。两套数据集的出处均已定位到论文：Capsule 对应 *Monitoring Long-term Cardiac Activity with Contactless Radio Frequency Signals*（Code Ocean capsule 4604022 为论文配套的数据与代码页），emo 对应 Scientific Data（2026-04-06）的数据论文。引用时须引用原论文而非本仓库；期刊 DOI 与许可条款以论文页面为准。
+> **出处核实状态**：本仓库不分发任何原始数据。两篇论文的 DOI 已核到 Crossref：Capsule 为 Nature Communications（2024），emo 为 Scientific Data（2026）。引用时须引用原论文而非本仓库；许可条款以论文页面为准。
 
 #### 测试口径
 
