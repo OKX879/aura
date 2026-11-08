@@ -82,7 +82,7 @@ SPI 复数立方体 (8 通道 × 30 距离门)
 | `deploy/` | systemd unit、udev 规则、CH347 初始化脚本、构建脚本 |
 | `docs/` | 架构、算法、验证、硬件、部署、公网访问，以及发布用文稿（索引见下方「文档」） |
 | `tools/verify/` | 用导出的原始位移做离线复算与偏差对比的脚本 |
-| `.trae/skills/aura-deploy/` | 面向 agent 的全流程部署 Skill，含 7 个可重复执行的脚本 |
+| `agent/skills/aura-deploy/` | 面向 agent 的全流程部署 Skill，含 7 个可重复执行的脚本 |
 
 ## 文档
 
@@ -135,7 +135,7 @@ sudo systemctl enable --now aura-ch347.service aura.service
 
 完整的逐步部署、设备节点确认、验证和排障见 [docs/deploy.md](docs/deploy.md)。
 
-如果使用支持 Skill 的 agent（Trae / Claude Code 等），可以直接加载 `.trae/skills/aura-deploy`，它会按顺序执行环境检查、依赖安装、CH347 内核模块、Drogon、编译、安装和验证七步，每步都有通过标准，失败即停。
+如果使用支持 Skill 的 agent（Trae / Claude Code 等），可以直接加载 `agent/skills/aura-deploy`，它会按顺序执行环境检查、依赖安装、CH347 内核模块、Drogon、编译、安装和验证七步，每步都有通过标准，失败即停。
 
 ### 4. 编译 App
 

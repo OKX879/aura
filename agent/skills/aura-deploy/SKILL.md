@@ -54,7 +54,7 @@ description: Deploy the AURA board-side service on an RDK X5 from a clean system
 执行方式：
 
 ```bash
-bash .trae/skills/aura-deploy/scripts/00-preflight.sh
+bash agent/skills/aura-deploy/scripts/00-preflight.sh
 ```
 
 ## 关键判断

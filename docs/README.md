@@ -22,4 +22,4 @@
 ## 其它
 
 - `tools/verify/README.md`：三个离线复算脚本的用法
-- `../.trae/skills/aura-deploy/`：给 agent 用的部署 Skill，七步，每步有通过标准
+- `../agent/skills/aura-deploy/`：给 agent 用的部署 Skill，七步，每步有通过标准
