@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cctype>
 #include <chrono>
+#include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -121,6 +122,23 @@ bool signupAllowed(const std::string& ip) {
     if (times.size() >= 5) return false;
     times.push_back(now);
     return true;
+}
+
+/* 仅允许局域网直连：经 Funnel 或反向代理转发的请求一律视为外网 */
+bool isLocalRequest(const drogon::HttpRequestPtr& request) {
+    if (!request->getHeader("x-forwarded-for").empty()
+        || !request->getHeader("x-real-ip").empty()) {
+        return false;
+    }
+    const std::string ip = request->peerAddr().toIp();
+    if (ip.rfind("127.", 0) == 0 || ip == "::1") return true;
+    unsigned int a = 0, b = 0, c = 0, d = 0;
+    if (std::sscanf(ip.c_str(), "%u.%u.%u.%u", &a, &b, &c, &d) != 4) return false;
+    if (a == 10) return true;
+    if (a == 172 && b >= 16 && b <= 31) return true;
+    if (a == 192 && b == 168) return true;
+    if (a == 169 && b == 254) return true;
+    return false;
 }
 
 }  // namespace
@@ -278,6 +296,10 @@ void registerApiRoutes(
 
     app().registerHandler("/api/v1/auth/login",
         [auth](const HttpRequestPtr& request, Callback&& callback) {
+            if (!isLocalRequest(request)) {
+                callback(failure("仅限局域网登录", "LOCAL_NETWORK_ONLY", k403Forbidden));
+                return;
+            }
             const auto json = request->getJsonObject();
             if (!json || !(*json)["email"].isString() || !(*json)["password"].isString()) {
                 callback(failure("请求参数无效", "VALIDATION_ERROR", k400BadRequest));
@@ -341,6 +363,10 @@ void registerApiRoutes(
 
     app().registerHandler("/api/v1/auth/signup",
         [database, auth](const HttpRequestPtr& request, Callback&& callback) {
+            if (!isLocalRequest(request)) {
+                callback(failure("仅限局域网注册", "LOCAL_NETWORK_ONLY", k403Forbidden));
+                return;
+            }
             if (!signupAllowed(request->peerAddr().toIp())) {
                 callback(failure("注册过于频繁，请稍后再试", "RATE_LIMITED", k429TooManyRequests));
                 return;
