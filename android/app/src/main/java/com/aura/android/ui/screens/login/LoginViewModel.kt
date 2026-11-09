@@ -10,7 +10,10 @@ import com.aura.android.data.api.ApiClient
 import com.aura.android.data.api.ApiResult
 import com.aura.android.data.api.toApiResult
 import com.aura.android.data.datastore.TokenDataStore
+import com.aura.android.data.model.ApiResponse
 import com.aura.android.data.model.LoginRequest
+import com.aura.android.data.model.LoginResponse
+import com.aura.android.data.model.SignupRequest
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
@@ -24,6 +27,12 @@ class LoginViewModel(
         private set
 
     var password by mutableStateOf("")
+        private set
+
+    var name by mutableStateOf("")
+        private set
+
+    var registerMode by mutableStateOf(false)
         private set
 
     var serverUrl by mutableStateOf(ApiClient.DEFAULT_BASE_URL.removeSuffix("/"))
@@ -51,8 +60,17 @@ class LoginViewModel(
         password = value
     }
 
+    fun onNameChange(value: String) {
+        name = value
+    }
+
     fun onServerUrlChange(value: String) {
         serverUrl = value
+    }
+
+    fun toggleMode() {
+        registerMode = !registerMode
+        uiState = null
     }
 
     fun login() {
@@ -60,23 +78,32 @@ class LoginViewModel(
             uiState = ApiResult.Error("请输入邮箱和密码")
             return
         }
+        submit { ApiClient.auraApi.login(LoginRequest(email.trim(), password)) }
+    }
 
+    fun register() {
+        if (name.isBlank() || email.isBlank() || password.length < 8) {
+            uiState = ApiResult.Error("昵称和邮箱必填，密码至少 8 位")
+            return
+        }
+        submit { ApiClient.auraApi.signup(SignupRequest(name.trim(), email.trim(), password)) }
+    }
+
+    private fun submit(call: suspend () -> ApiResponse<LoginResponse>) {
         viewModelScope.launch {
             uiState = ApiResult.Loading
             try {
                 ApiClient.configureBaseUrl(serverUrl)
                 tokenDataStore.saveServerUrl(serverUrl)
-                val response = ApiClient.auraApi.login(
-                    LoginRequest(email = email.trim(), password = password)
-                )
-                val result = response.toApiResult()
-                if (result is ApiResult.Success) {
-                    tokenDataStore.saveToken(result.data.token)
-                    tokenDataStore.saveUserId(result.data.user.id)
-                    uiState = ApiResult.Success(Unit)
-                    _loginSuccess.emit(Unit)
-                } else if (result is ApiResult.Error) {
-                    uiState = result
+                when (val result = call().toApiResult()) {
+                    is ApiResult.Success -> {
+                        tokenDataStore.saveToken(result.data.token)
+                        tokenDataStore.saveUserId(result.data.user.id)
+                        uiState = ApiResult.Success(Unit)
+                        _loginSuccess.emit(Unit)
+                    }
+                    is ApiResult.Error -> uiState = result
+                    is ApiResult.Loading -> Unit
                 }
             } catch (e: Exception) {
                 uiState = ApiResult.Error(e.message ?: "网络异常，请检查服务器地址和 Wi-Fi")

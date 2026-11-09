@@ -18,6 +18,7 @@
 #include <string>
 #include <system_error>
 #include <unordered_map>
+#include <vector>
 
 namespace aura {
 namespace {
@@ -104,6 +105,22 @@ std::string ruleReply(const std::string& message, const Json::Value& latest) {
         + " BPM，呼吸率 " + latest["respirationRate"].asString()
         + " 次/分，专注度 " + latest["focusScore"].asString()
         + "。这些是工程估计值，不是医疗诊断结论。";
+}
+
+/* 注册限流：同一 IP 每小时最多 5 次 */
+bool signupAllowed(const std::string& ip) {
+    static std::mutex mutex;
+    static std::unordered_map<std::string, std::vector<std::chrono::steady_clock::time_point>> history;
+    const auto now = std::chrono::steady_clock::now();
+    std::lock_guard<std::mutex> lock(mutex);
+    auto& times = history[ip];
+    times.erase(std::remove_if(times.begin(), times.end(),
+        [&](const std::chrono::steady_clock::time_point& t) {
+            return now - t > std::chrono::hours(1);
+        }), times.end());
+    if (times.size() >= 5) return false;
+    times.push_back(now);
+    return true;
 }
 
 }  // namespace
@@ -308,6 +325,50 @@ void registerApiRoutes(
             data["departmentId"] = (*json)["departmentId"];
             data["email"] = (*json)["email"].asString();
             data["phone"] = (*json)["phone"];
+            data["status"] = "active";
+            data["role"] = database->userCount() == 0 ? "admin" : "employee";
+            data["passwordHash"] = BCrypt::generateHash((*json)["password"].asString(), 10);
+            const auto user = database->createUser(data);
+            if (!user) {
+                callback(failure("注册失败", "REGISTRATION_FAILED", k500InternalServerError));
+                return;
+            }
+            Json::Value payload(Json::objectValue);
+            payload["token"] = auth->createToken((*user)["id"].asString(), (*user)["role"].asString());
+            payload["user"] = *user;
+            callback(success(payload, k201Created));
+        }, {Post});
+
+    app().registerHandler("/api/v1/auth/signup",
+        [database, auth](const HttpRequestPtr& request, Callback&& callback) {
+            if (!signupAllowed(request->peerAddr().toIp())) {
+                callback(failure("注册过于频繁，请稍后再试", "RATE_LIMITED", k429TooManyRequests));
+                return;
+            }
+            const auto json = request->getJsonObject();
+            if (!json || !(*json)["name"].isString() || !(*json)["email"].isString()
+                || !(*json)["password"].isString()
+                || (*json)["name"].asString().empty()
+                || (*json)["email"].asString().empty()
+                || (*json)["password"].asString().size() < 8) {
+                callback(failure("请求参数无效", "VALIDATION_ERROR", k400BadRequest));
+                return;
+            }
+            const std::string email = (*json)["email"].asString();
+            if (email.find('@') == std::string::npos) {
+                callback(failure("邮箱格式不正确", "VALIDATION_ERROR", k400BadRequest));
+                return;
+            }
+            if (database->userEmailExists(email)) {
+                callback(failure("邮箱已被注册", "EMAIL_EXISTS", k409Conflict));
+                return;
+            }
+            Json::Value data(Json::objectValue);
+            data["name"] = (*json)["name"].asString();
+            data["employeeId"] = "U" + std::to_string(
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::system_clock::now().time_since_epoch()).count());
+            data["email"] = email;
             data["status"] = "active";
             data["role"] = database->userCount() == 0 ? "admin" : "employee";
             data["passwordHash"] = BCrypt::generateHash((*json)["password"].asString(), 10);

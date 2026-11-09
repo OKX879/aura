@@ -77,9 +77,13 @@ data class LoginStrings(
     val title: String,
     val subtitle: String,
     val server: String,
+    val name: String,
     val email: String,
     val password: String,
     val signIn: String,
+    val register: String,
+    val switchToRegister: String,
+    val switchToLogin: String,
     val hint: String
 )
 
@@ -273,9 +277,13 @@ val StringsZh = Strings(
         title = "登录 AURA",
         subtitle = "连接开发板，查看实时心率与呼吸。",
         server = "服务器地址",
+        name = "昵称",
         email = "邮箱",
         password = "密码",
         signIn = "登录",
+        register = "注册并登录",
+        switchToRegister = "没有账号？立即注册",
+        switchToLogin = "已有账号？去登录",
         hint = "手机与开发板需在同一局域网，或使用固定公网地址。"
     ),
     dashboard = DashboardStrings(
@@ -464,9 +472,13 @@ val StringsEn = Strings(
         title = "Sign in to AURA",
         subtitle = "Connect to the board to view live heart rate and breathing.",
         server = "Server address",
+        name = "Name",
         email = "Email",
         password = "Password",
         signIn = "Sign in",
+        register = "Create account",
+        switchToRegister = "No account? Sign up",
+        switchToLogin = "Already have an account? Sign in",
         hint = "Phone and board must be on the same LAN, or use a public address."
     ),
     dashboard = DashboardStrings(
