@@ -10,6 +10,7 @@ import com.aura.android.data.model.Device
 import com.aura.android.data.model.LiveSnapshot
 import com.aura.android.data.model.LoginRequest
 import com.aura.android.data.model.LoginResponse
+import com.aura.android.data.model.PairLoginRequest
 import com.aura.android.data.model.SignupRequest
 import com.aura.android.data.model.MobileDashboard
 import com.aura.android.data.model.UpdateProfileRequest
@@ -28,6 +29,10 @@ interface AuraApi {
 
     @POST("api/v1/auth/signup")
     suspend fun signup(@Body request: SignupRequest): ApiResponse<LoginResponse>
+
+    // 配对码登录
+    @POST("api/v1/auth/pair")
+    suspend fun pairLogin(@Body request: PairLoginRequest): ApiResponse<LoginResponse>
 
     @GET("api/v1/auth/me")
     suspend fun getMe(): ApiResponse<User>

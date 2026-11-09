@@ -112,15 +112,16 @@ Drogon 按 CPU 核数起 IO 线程。所有接口只读快照或读写 SQLite，
 
 ## 5. REST API
 
-除 `/api/v1/health` 与 `/api/v1/pair/verify` 外，其余接口均要求 `Authorization: Bearer <token>`。
+除 `/api/v1/health`、`/api/v1/pair/verify`、`/api/v1/auth/login`、`/api/v1/auth/signup`、`/api/v1/auth/pair` 外，其余接口均要求 `Authorization: Bearer <token>`。
 
 | 方法 | 路径 | 鉴权 | 说明 |
 |---|---|---|---|
 | GET | `/api/v1/health` | 否 | 探活：帧计数、雷达状态；**不含体征** |
 | GET | `/api/v1/live/snapshot` | 是 | 实时快照：心率、呼吸、置信度、体动、距离门 |
 | POST | `/api/v1/pair/verify` | 否 | 配对码校验，换取设备凭证 |
-| POST | `/api/v1/auth/login` | 否 | 邮箱 + 密码 + 配对码，仅局域网 |
-| POST | `/api/v1/auth/signup` | 否 | 昵称 + 邮箱 + 密码 + 配对码，仅局域网，每小时同 IP 限 5 次 |
+| POST | `/api/v1/auth/login` | 否 | 邮箱 + 密码，仅局域网 |
+| POST | `/api/v1/auth/signup` | 否 | 昵称 + 邮箱 + 密码，仅局域网，每小时同 IP 限 5 次 |
+| POST | `/api/v1/auth/pair` | 否 | 仅配对码登录，仅局域网，自动登录本机归属账号 |
 | POST | `/api/v1/auth/register` | 是（管理员） | 管理员创建账号 |
 | POST | `/api/v1/auth/change-password` | 是 | 改密 |
 | GET | `/api/v1/auth/me` | 是 | 当前用户 |

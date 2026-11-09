@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -110,14 +111,6 @@ fun LoginScreen(
             keyboardType = KeyboardType.Uri
         )
         Spacer(modifier = Modifier.height(14.dp))
-        IosField(
-            label = s.login.pairCode,
-            value = viewModel.pairCode,
-            onValueChange = viewModel::onPairCodeChange,
-            icon = Icons.Default.Key,
-            keyboardType = KeyboardType.Number
-        )
-        Spacer(modifier = Modifier.height(14.dp))
         if (viewModel.registerMode) {
             IosField(
                 label = s.login.name,
@@ -185,6 +178,17 @@ fun LoginScreen(
             )
         }
 
+        TextButton(
+            onClick = viewModel::openPairDialog,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = s.login.pairLogin,
+                color = PrimaryBlue,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = s.login.hint,
@@ -192,6 +196,52 @@ fun LoginScreen(
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(32.dp))
+    }
+
+    if (viewModel.pairDialogVisible) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissPairDialog,
+            containerColor = Surface,
+            title = { Text(text = s.login.pairLoginTitle, color = OnSurface) },
+            text = {
+                Column {
+                    Text(
+                        text = s.login.pairLoginHint,
+                        style = MaterialTheme.typography.bodySmall.copy(color = Muted)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    IosField(
+                        label = s.login.pairCode,
+                        value = viewModel.pairCode,
+                        onValueChange = viewModel::onPairCodeChange,
+                        icon = Icons.Default.Key,
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done
+                    )
+                    (viewModel.uiState as? ApiResult.Error)?.let {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = it.message,
+                            color = ErrorRed,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = viewModel::loginWithPairCode,
+                    enabled = viewModel.uiState != ApiResult.Loading
+                ) {
+                    Text(text = s.login.pairLoginConfirm, color = PrimaryBlue)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissPairDialog) {
+                    Text(text = s.common.cancel, color = Muted)
+                }
+            }
+        )
     }
 }
 

@@ -13,6 +13,7 @@ import com.aura.android.data.datastore.TokenDataStore
 import com.aura.android.data.model.ApiResponse
 import com.aura.android.data.model.LoginRequest
 import com.aura.android.data.model.LoginResponse
+import com.aura.android.data.model.PairLoginRequest
 import com.aura.android.data.model.SignupRequest
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -33,6 +34,9 @@ class LoginViewModel(
         private set
 
     var pairCode by mutableStateOf("")
+        private set
+
+    var pairDialogVisible by mutableStateOf(false)
         private set
 
     var registerMode by mutableStateOf(false)
@@ -80,16 +84,21 @@ class LoginViewModel(
         uiState = null
     }
 
+    fun openPairDialog() {
+        pairDialogVisible = true
+        uiState = null
+    }
+
+    fun dismissPairDialog() {
+        pairDialogVisible = false
+    }
+
     fun login() {
         if (email.isBlank() || password.isBlank()) {
             uiState = ApiResult.Error("请输入邮箱和密码")
             return
         }
-        if (pairCode.isBlank()) {
-            uiState = ApiResult.Error("请输入配对码")
-            return
-        }
-        submit { ApiClient.auraApi.login(LoginRequest(email.trim(), password, pairCode.trim())) }
+        submit { ApiClient.auraApi.login(LoginRequest(email.trim(), password)) }
     }
 
     fun register() {
@@ -97,13 +106,18 @@ class LoginViewModel(
             uiState = ApiResult.Error("昵称和邮箱必填，密码至少 8 位")
             return
         }
-        if (pairCode.isBlank()) {
-            uiState = ApiResult.Error("请输入配对码")
+        submit {
+            ApiClient.auraApi.signup(SignupRequest(name.trim(), email.trim(), password))
+        }
+    }
+
+    // 仅用配对码登录，成功后自动进入本机归属账号
+    fun loginWithPairCode() {
+        if (pairCode.trim().length != 6) {
+            uiState = ApiResult.Error("请输入 6 位配对码")
             return
         }
-        submit {
-            ApiClient.auraApi.signup(SignupRequest(name.trim(), email.trim(), password, pairCode.trim()))
-        }
+        submit { ApiClient.auraApi.pairLogin(PairLoginRequest(pairCode.trim())) }
     }
 
     private fun submit(call: suspend () -> ApiResponse<LoginResponse>) {
@@ -116,6 +130,7 @@ class LoginViewModel(
                     is ApiResult.Success -> {
                         tokenDataStore.saveToken(result.data.token)
                         tokenDataStore.saveUserId(result.data.user.id)
+                        pairDialogVisible = false
                         uiState = ApiResult.Success(Unit)
                         _loginSuccess.emit(Unit)
                     }

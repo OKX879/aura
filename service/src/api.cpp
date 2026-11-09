@@ -305,10 +305,6 @@ void registerApiRoutes(
                 callback(failure("请求参数无效", "VALIDATION_ERROR", k400BadRequest));
                 return;
             }
-            if ((*json)["pairCode"].asString() != ensurePairingCode()) {
-                callback(failure("配对码错误", "PAIR_CODE_INVALID", k403Forbidden));
-                return;
-            }
             const Json::Value login = auth->login((*json)["email"].asString(), (*json)["password"].asString());
             if (!login["ok"].asBool()) {
                 callback(failure("邮箱或密码错误", "UNAUTHORIZED", k401Unauthorized));
@@ -318,6 +314,65 @@ void registerApiRoutes(
             data["token"] = login["token"];
             data["user"] = login["user"];
             callback(success(data));
+        }, {Post});
+
+    // 配对码登录：仅局域网，配对码正确即登录本机归属账号
+    auto pairLoginLimiter = std::make_shared<PairLimiter>();
+    app().registerHandler("/api/v1/auth/pair",
+        [database, auth, pairLoginLimiter](const HttpRequestPtr& request, Callback&& callback) {
+            if (!isLocalRequest(request)) {
+                callback(failure("仅限局域网配对登录", "LOCAL_NETWORK_ONLY", k403Forbidden));
+                return;
+            }
+            if (!pairLoginLimiter->allow(request->peerAddr().toIp())) {
+                callback(failure("配对尝试过于频繁，请稍后再试", "TOO_MANY_ATTEMPTS",
+                                 k403Forbidden));
+                return;
+            }
+            const auto json = request->getJsonObject();
+            if (!json || !(*json)["code"].isString()) {
+                callback(failure("请输入配对码", "VALIDATION_ERROR", k400BadRequest));
+                return;
+            }
+            if ((*json)["code"].asString() != ensurePairingCode()) {
+                callback(failure("配对码错误", "PAIR_CODE_INVALID", k403Forbidden));
+                return;
+            }
+            const auto envOr = [](const char* key, const std::string& fallback) {
+                const char* value = std::getenv(key);
+                return (value && *value) ? std::string(value) : fallback;
+            };
+            const std::string email = envOr("AURA_OWNER_EMAIL", "mobile@aura.local");
+            auto user = database->findUserByEmail(email, false);
+            if (!user) {
+                // 首次配对自动创建归属账号，密码随机不可猜
+                std::random_device device;
+                std::mt19937 generator(device());
+                std::uniform_int_distribution<int> distribution(0, 35);
+                static const char alphabet[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+                std::string randomPassword;
+                for (int i = 0; i < 32; ++i) {
+                    randomPassword.push_back(alphabet[distribution(generator)]);
+                }
+                Json::Value data(Json::objectValue);
+                data["name"] = envOr("AURA_OWNER_NAME", "AURA 用户");
+                data["employeeId"] = "P" + std::to_string(
+                    std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::system_clock::now().time_since_epoch()).count());
+                data["email"] = email;
+                data["status"] = "active";
+                data["role"] = database->userCount() == 0 ? "admin" : "employee";
+                data["passwordHash"] = BCrypt::generateHash(randomPassword, 10);
+                user = database->createUser(data);
+            }
+            if (!user) {
+                callback(failure("配对登录失败", "PAIR_LOGIN_FAILED", k500InternalServerError));
+                return;
+            }
+            Json::Value payload(Json::objectValue);
+            payload["token"] = auth->createToken((*user)["id"].asString(), (*user)["role"].asString());
+            payload["user"] = *user;
+            callback(success(payload));
         }, {Post});
 
     app().registerHandler("/api/v1/auth/register",
@@ -382,10 +437,6 @@ void registerApiRoutes(
                 || (*json)["email"].asString().empty()
                 || (*json)["password"].asString().size() < 8) {
                 callback(failure("请求参数无效", "VALIDATION_ERROR", k400BadRequest));
-                return;
-            }
-            if ((*json)["pairCode"].asString() != ensurePairingCode()) {
-                callback(failure("配对码错误", "PAIR_CODE_INVALID", k403Forbidden));
                 return;
             }
             const std::string email = (*json)["email"].asString();

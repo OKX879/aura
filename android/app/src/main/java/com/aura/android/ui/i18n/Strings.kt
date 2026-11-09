@@ -85,6 +85,10 @@ data class LoginStrings(
     val register: String,
     val switchToRegister: String,
     val switchToLogin: String,
+    val pairLogin: String,
+    val pairLoginTitle: String,
+    val pairLoginHint: String,
+    val pairLoginConfirm: String,
     val hint: String
 )
 
@@ -286,6 +290,10 @@ val StringsZh = Strings(
         register = "注册并登录",
         switchToRegister = "没有账号？立即注册",
         switchToLogin = "已有账号？去登录",
+        pairLogin = "使用配对码登录",
+        pairLoginTitle = "配对码登录",
+        pairLoginHint = "输入板端启动日志或 /opt/aura/app/data/.pair-code 中的 6 位配对码。",
+        pairLoginConfirm = "登录",
         hint = "手机与开发板需在同一局域网，或使用固定公网地址。"
     ),
     dashboard = DashboardStrings(
@@ -482,6 +490,10 @@ val StringsEn = Strings(
         register = "Create account",
         switchToRegister = "No account? Sign up",
         switchToLogin = "Already have an account? Sign in",
+        pairLogin = "Sign in with pairing code",
+        pairLoginTitle = "Pairing code sign-in",
+        pairLoginHint = "Enter the 6-digit code from /opt/aura/app/data/.pair-code on the board.",
+        pairLoginConfirm = "Sign in",
         hint = "Phone and board must be on the same LAN, or use a public address."
     ),
     dashboard = DashboardStrings(

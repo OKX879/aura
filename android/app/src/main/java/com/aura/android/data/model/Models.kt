@@ -173,8 +173,7 @@ data class MobileDashboard(
 @Serializable
 data class LoginRequest(
     val email: String,
-    val password: String,
-    val pairCode: String
+    val password: String
 )
 
 @Serializable
@@ -187,8 +186,13 @@ data class LoginResponse(
 data class SignupRequest(
     val name: String,
     val email: String,
-    val password: String,
-    val pairCode: String
+    val password: String
+)
+
+// 配对码登录请求
+@Serializable
+data class PairLoginRequest(
+    val code: String
 )
 
 // AI 对话
