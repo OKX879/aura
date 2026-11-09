@@ -305,6 +305,10 @@ void registerApiRoutes(
                 callback(failure("请求参数无效", "VALIDATION_ERROR", k400BadRequest));
                 return;
             }
+            if ((*json)["pairCode"].asString() != ensurePairingCode()) {
+                callback(failure("配对码错误", "PAIR_CODE_INVALID", k403Forbidden));
+                return;
+            }
             const Json::Value login = auth->login((*json)["email"].asString(), (*json)["password"].asString());
             if (!login["ok"].asBool()) {
                 callback(failure("邮箱或密码错误", "UNAUTHORIZED", k401Unauthorized));
@@ -378,6 +382,10 @@ void registerApiRoutes(
                 || (*json)["email"].asString().empty()
                 || (*json)["password"].asString().size() < 8) {
                 callback(failure("请求参数无效", "VALIDATION_ERROR", k400BadRequest));
+                return;
+            }
+            if ((*json)["pairCode"].asString() != ensurePairingCode()) {
+                callback(failure("配对码错误", "PAIR_CODE_INVALID", k403Forbidden));
                 return;
             }
             const std::string email = (*json)["email"].asString();

@@ -32,6 +32,9 @@ class LoginViewModel(
     var name by mutableStateOf("")
         private set
 
+    var pairCode by mutableStateOf("")
+        private set
+
     var registerMode by mutableStateOf(false)
         private set
 
@@ -64,6 +67,10 @@ class LoginViewModel(
         name = value
     }
 
+    fun onPairCodeChange(value: String) {
+        pairCode = value
+    }
+
     fun onServerUrlChange(value: String) {
         serverUrl = value
     }
@@ -78,7 +85,11 @@ class LoginViewModel(
             uiState = ApiResult.Error("请输入邮箱和密码")
             return
         }
-        submit { ApiClient.auraApi.login(LoginRequest(email.trim(), password)) }
+        if (pairCode.isBlank()) {
+            uiState = ApiResult.Error("请输入配对码")
+            return
+        }
+        submit { ApiClient.auraApi.login(LoginRequest(email.trim(), password, pairCode.trim())) }
     }
 
     fun register() {
@@ -86,7 +97,13 @@ class LoginViewModel(
             uiState = ApiResult.Error("昵称和邮箱必填，密码至少 8 位")
             return
         }
-        submit { ApiClient.auraApi.signup(SignupRequest(name.trim(), email.trim(), password)) }
+        if (pairCode.isBlank()) {
+            uiState = ApiResult.Error("请输入配对码")
+            return
+        }
+        submit {
+            ApiClient.auraApi.signup(SignupRequest(name.trim(), email.trim(), password, pairCode.trim()))
+        }
     }
 
     private fun submit(call: suspend () -> ApiResponse<LoginResponse>) {

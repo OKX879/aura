@@ -119,8 +119,8 @@ Drogon 按 CPU 核数起 IO 线程。所有接口只读快照或读写 SQLite，
 | GET | `/api/v1/health` | 否 | 探活：帧计数、雷达状态；**不含体征** |
 | GET | `/api/v1/live/snapshot` | 是 | 实时快照：心率、呼吸、置信度、体动、距离门 |
 | POST | `/api/v1/pair/verify` | 否 | 配对码校验，换取设备凭证 |
-| POST | `/api/v1/auth/login` | 否 | 邮箱 + 密码登录 |
-| POST | `/api/v1/auth/signup` | 否 | 自助注册，每小时同 IP 限 5 次 |
+| POST | `/api/v1/auth/login` | 否 | 邮箱 + 密码 + 配对码，仅局域网 |
+| POST | `/api/v1/auth/signup` | 否 | 昵称 + 邮箱 + 密码 + 配对码，仅局域网，每小时同 IP 限 5 次 |
 | POST | `/api/v1/auth/register` | 是（管理员） | 管理员创建账号 |
 | POST | `/api/v1/auth/change-password` | 是 | 改密 |
 | GET | `/api/v1/auth/me` | 是 | 当前用户 |

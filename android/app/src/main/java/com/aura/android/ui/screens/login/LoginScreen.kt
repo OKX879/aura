@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.CircularProgressIndicator
@@ -107,6 +108,14 @@ fun LoginScreen(
             onValueChange = viewModel::onServerUrlChange,
             icon = Icons.Default.Link,
             keyboardType = KeyboardType.Uri
+        )
+        Spacer(modifier = Modifier.height(14.dp))
+        IosField(
+            label = s.login.pairCode,
+            value = viewModel.pairCode,
+            onValueChange = viewModel::onPairCodeChange,
+            icon = Icons.Default.Key,
+            keyboardType = KeyboardType.Number
         )
         Spacer(modifier = Modifier.height(14.dp))
         if (viewModel.registerMode) {
