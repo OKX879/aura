@@ -18,7 +18,7 @@ captures/
 .externalNativeBuild/
 
 # 运行数据：数据库、导出、日志一律不入库
-data/
+/data/
 *.db
 *.db-wal
 *.db-shm
