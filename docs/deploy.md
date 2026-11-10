@@ -319,7 +319,93 @@ sqlite3 /opt/aura/app/data/aura.db ".backup '/tmp/aura.db'"
 
 体征落库间隔由 `AURA_VITALS_INTERVAL_MIN` 控制，默认 10 分钟一条。
 
-## 12. 环境变量
+## 12. SSH 远程登录
+
+板端只授权部署时生成的专用密钥，系统默认的 `~/.ssh/id_ed25519` 不在 `authorized_keys` 里。直接 `ssh root@<板端IP>` 会报 `Permission denied (publickey,password)`，看着像板子没起来，其实是密钥没对上。
+
+### 12.1 本机配置
+
+把专用公钥装到板端，只需一次：
+
+```bash
+ssh-copy-id -i ~/.ssh/aura_board_ed25519.pub root@<板端IP>
+```
+
+在 `~/.ssh/config` 里写一条别名，固定用户名和私钥：
+
+```
+Host aura
+    HostName <板端IP>
+    User root
+    Port 22
+    IdentityFile ~/.ssh/aura_board_ed25519
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+```
+
+之后 `ssh aura` 直接登录。私钥权限必须收紧，否则 OpenSSH 会拒绝使用：
+
+```bash
+chmod 600 ~/.ssh/aura_board_ed25519
+```
+
+### 12.2 排障
+
+| 现象 | 原因 | 处理 |
+|---|---|---|
+| `Permission denied (publickey,password)`，但 22 端口通 | 用了默认私钥 `id_ed25519`，板端没授权 | `ssh -i ~/.ssh/aura_board_ed25519 root@<板端IP>` |
+| `ssh -o BatchMode=yes` 直接失败 | BatchMode 禁止交互输密码，密钥又不对 | 先配好密钥；脚本里不要指望回退到密码 |
+| `Connection refused` | sshd 没启动 | 串口或 HDMI 登录后 `systemctl status ssh` |
+| `No route to host` / `Connection timed out` | 板端不在同一网段，或 IP 变了 | 见 12.3 |
+| `WARNING: UNPROTECTED PRIVATE KEY FILE` | 私钥权限过宽 | `chmod 600` |
+| 能 ping 通但登录卡住 | 认证阶段做 DNS 反查 | sshd 配 `UseDNS no`，或直接用 IP 登录 |
+
+### 12.3 地址
+
+- `wlan0` 走 DHCP 时，换网段或路由器重启后地址会变。长期使用建议配静态地址，见 12.4。
+- `eth0` 和 `usb0` 是内部调试网段，不要和 `wlan0` 混用。
+- 改静态地址前先确认该地址不在路由器 DHCP 池里，能按 MAC 绑定就优先绑定，避免与其它设备冲突。
+
+### 12.4 配静态地址（NetworkManager）
+
+RDK X5 的 Ubuntu 22.04 用 NetworkManager 管 `wlan0`，`/etc/netplan/` 是空的，不要往那里写。
+
+```bash
+# 备份当前配置
+cp -a /etc/NetworkManager/system-connections/<WiFi名>.nmconnection \
+      /root/wifi.nmconnection.bak
+
+# 改成静态
+nmcli connection modify <WiFi名> \
+    ipv4.method manual \
+    ipv4.addresses 192.168.1.50/24 \
+    ipv4.gateway 192.168.1.1 \
+    ipv4.dns "192.168.1.1,223.5.5.5"
+nmcli connection up <WiFi名>
+```
+
+`nmcli connection up` 会重连 WiFi，SSH 断一次，几秒后用同一地址重连即可。改错了把备份覆盖回去，再 `nmcli connection reload`。
+
+配完确认：
+
+```bash
+ip -4 addr show wlan0     # inet 那行不应再有 dynamic
+ip route | head -2        # 默认路由应为 proto static
+ping -c 2 223.5.5.5
+```
+
+### 12.5 密钥轮换
+
+换机器或怀疑私钥泄露时，重新生成并替换：
+
+```bash
+ssh-keygen -t ed25519 -C "aura-board" -f ~/.ssh/aura_board_ed25519
+ssh-copy-id -i ~/.ssh/aura_board_ed25519.pub root@<板端IP>
+```
+
+新公钥装好后，到板端把 `~/.ssh/authorized_keys` 里的旧条目删掉。只保留当前在用的公钥。
+
+## 13. 环境变量
 
 `aura.service` 里已经把板端要用的都设好了，走 systemd 就不用管这一节；手跑二进制、换机器或改端口时才需要自己给。默认值取自代码，不设就是这个。
 
