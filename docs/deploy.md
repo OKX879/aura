@@ -182,15 +182,23 @@ sudo udevadm control --reload-rules
 sudo systemctl daemon-reload
 ```
 
-### 数据库需要自带表结构
+### 初始化数据库（必须）
 
-`AuraService` 启动时只建库文件、不建表：它用 `SQLITE_OPEN_CREATE` 打开 `AURA_DB_PATH`，然后设 PRAGMA，并对 `devices.endpoint_url`、`users.avatar` 各补一列兜底。表结构得由现成的 `aura.db` 带进来，否则 `/auth/*`、`/devices`、`/focus-data/*` 全部返回 `no such table`。
+`AuraService` 启动时只建库文件、不建表：它用 `SQLITE_OPEN_CREATE` 打开 `AURA_DB_PATH`，然后设 PRAGMA，并对 `devices.endpoint_url`、`users.avatar` 各补一列兜底。表结构必须在启动前导入，否则 `/auth/*`、`/devices`、`/focus-data/*` 全部返回 `no such table`。
 
-启动前先确认：
+仓库自带 `deploy/schema.sql`，一条命令建好：
 
 ```bash
+sudo mkdir -p /opt/aura/app/data
+sqlite3 /opt/aura/app/data/aura.db < deploy/schema.sql
 sqlite3 /opt/aura/app/data/aura.db ".tables"
-# 期望：alerts  devices  focus_records  rooms  settings  users
+```
+
+预期看到 10 张表：
+
+```
+alerts            departments     focus_records   predictions       settings
+devices           oauth_accounts  rooms           schema_migrations users
 ```
 
 少任何一张，服务能起来、`/health` 也是 `ok`，但除了探活以外的接口全废——这是这套服务最容易误判的失败模式。
@@ -292,7 +300,8 @@ sudo sqlite3 /opt/aura/app/data/aura.db ".backup '/opt/aura/backup/aura-$(date +
 | `cannot open /dev/spidev8.0` | 内核模块没加载，或总线号变了 | `lsmod \| grep ch34x`；`ls /sys/bus/spi/devices`；重跑 `aura-ch347-setup.sh` |
 | 只有 `/dev/ttyACM0`，没有 spidev | CH347 只枚举了串口 | 确认驱动装的是 `ch34x_mphsi_master`，不是 `ch341` 串口驱动 |
 | `no reply to 'mmwc ...'` | 串口被占用，或雷达没上电 | `fuser -v /dev/ttyACM0`；检查雷达供电 |
-| `HIF wake failed: -3` | 雷达固件挂死 | 给雷达模组断电再上电，软件复位无效 |
+| `HIF wake failed: -3` | 雷达固件挂死 | 重载驱动、USB 复位都只能恢复 SPI 节点，必须给雷达模组断电 5 秒再上电，或重启板卡 |
+| 重启后没有 `/dev/spidev8.0`，`lsusb` 也看不到 `1a86:55db` | CH347 的 USB 断开了 | 重新插紧 USB 线；插好后驱动会自动 probe，不需要重启 |
 | `radar_frames` 不增长 | 采帧线程卡住 | 看 `journalctl -u aura.service -f`；重启服务 |
 | 心率长期为 0 | 没人、距离不对、或大幅移动 | 坐到 0.6–1.2 米内保持静止 20 秒以上 |
 | App 连不上 | 手机热点做了客户端隔离 | 换普通路由器，或用手机热点但关闭「AP 隔离」 |
@@ -394,6 +403,8 @@ ip route | head -2        # 默认路由应为 proto static
 ping -c 2 223.5.5.5
 ```
 
+> 静态地址一旦 WiFi 没连上，板子就没有任何地址，也不会回退 DHCP，等于彻底失联。改之前先确认能手握网线或串口登录，或者保留一条 `ipv4.method auto` 的备用 profile。
+
 ### 12.5 密钥轮换
 
 换机器或怀疑私钥泄露时，重新生成并替换：
@@ -430,3 +441,28 @@ ssh-copy-id -i ~/.ssh/aura_board_ed25519.pub root@<板端IP>
 | `AURA_OWNER_EMAIL` | `mobile@aura.local` | 体征落库归属的账号 |
 | `AURA_VITALS_INTERVAL_MIN` | `10` | 体征落库间隔（分钟） |
 | `AURA_PHASE_DUMP` / `AURA_SNAP_DUMP` | 未设即不导出 | 诊断导出开关，用于离线复算 |
+
+## 14. 从零验证记录
+
+2026-11-15 在一台系统依赖已装好的 RDK X5 上，从 `git clone` 开始实跑了一遍。
+
+| 步骤 | 命令 | 结果 | 耗时 |
+|---|---|---|---|
+| 拉代码 | `git clone --depth 1 <repo>` | 通过 | 6 s |
+| 算法库 | `make -C algorithm -j4` | `libaura.a` 125 KB | 28 s |
+| 服务 | `cmake -S service -B service/build -DCMAKE_BUILD_TYPE=Release` | `AuraService` 3.2 MB | 90 s |
+| 建库 | `sqlite3 aura.db < deploy/schema.sql` | 10 张表 | 1 s |
+| 启动 | 独立端口 3100，独立 DB | `/health` 正常 | 4 s |
+| 配对登录 | `POST /api/v1/auth/pair` | 返回 token 与 admin 用户 | — |
+| 建设备 | `POST /api/v1/devices` | 落库，列表可见 | — |
+| 处理链回放 | `AURA_LIVE_CUBE=patient_1_cube.bin` | 3000 帧；快照 `hr_fft=67.1`、`hr_acf=75.9`、`resp_hz=0.398` | 30 s |
+
+**本次未验证的部分**：重编 CH347 内核模块、重编 Drogon。这两步在目标机上已经装好，重编要一到两小时，而且会中断正在采集的服务。它们的环境要求写在 §2–§4，命令原样可用。
+
+### 14.1 两个实测踩到的坑
+
+1. **空库能启动，但只有 `/health` 能用。** 服务只建库文件、不建表，跳过 `deploy/schema.sql` 时 `/health` 仍返回 `ok`，而 `/api/v1/auth/pair` 会直接抛 `no such table: users`。先建表，再启动。
+
+2. **硬件雷达异常退出后可能挂死，软件复位不回来。** 停掉服务、换另一个进程打开 `/dev/spidev8.0` 之后，雷达 UART 停止应答（`no reply to 'mmwc start'`、`HIF wake failed: -3`）。重载 `ch34x_mphsi_master`、USB unbind/bind 只能让 SPI 节点回来，雷达本身仍然不应答，最后是重启板卡才恢复。排查顺序建议是：先看 `lsusb` 有没有 `1a86:55db`，没有就是 USB 线的问题；有就断电重上电，不要反复重载驱动。
+
+3. **静态 IP 会放大失联风险。** 见 §12.4 末尾的提示。这次把 WiFi 改成 `manual` 后重启，板子有几分钟完全不在网络上，只能现场处理。
