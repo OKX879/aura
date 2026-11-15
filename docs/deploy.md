@@ -301,7 +301,7 @@ sudo sqlite3 /opt/aura/app/data/aura.db ".backup '/opt/aura/backup/aura-$(date +
 | 只有 `/dev/ttyACM0`，没有 spidev | CH347 只枚举了串口 | 确认驱动装的是 `ch34x_mphsi_master`，不是 `ch341` 串口驱动 |
 | `no reply to 'mmwc ...'` | 串口被占用，或雷达没上电 | `fuser -v /dev/ttyACM0`；检查雷达供电 |
 | `HIF wake failed: -3` | 雷达固件挂死 | 重载驱动、USB 复位都只能恢复 SPI 节点，必须给雷达模组断电 5 秒再上电，或重启板卡 |
-| 重启后没有 `/dev/spidev8.0`，`lsusb` 也看不到 `1a86:55db` | CH347 的 USB 断开了 | 重新插紧 USB 线；插好后驱动会自动 probe，不需要重启 |
+| 重启后没有 `/dev/spidev8.0`，`lsusb` 也看不到 `1a86:55db` | CH347 的 USB 断开了（供电跌落或线材接触） | `dmesg -T \| grep -i disconnect` 确认掉线时间；重新插紧 USB 线，插好后驱动会自动 probe，不需要重启 |
 | `radar_frames` 不增长 | 采帧线程卡住 | 看 `journalctl -u aura.service -f`；重启服务 |
 | 心率长期为 0 | 没人、距离不对、或大幅移动 | 坐到 0.6–1.2 米内保持静止 20 秒以上 |
 | App 连不上 | 手机热点做了客户端隔离 | 换普通路由器，或用手机热点但关闭「AP 隔离」 |
@@ -465,4 +465,4 @@ ssh-copy-id -i ~/.ssh/aura_board_ed25519.pub root@<板端IP>
 
 2. **硬件雷达异常退出后可能挂死，软件复位不回来。** 停掉服务、换另一个进程打开 `/dev/spidev8.0` 之后，雷达 UART 停止应答（`no reply to 'mmwc start'`、`HIF wake failed: -3`）。重载 `ch34x_mphsi_master`、USB unbind/bind 只能让 SPI 节点回来，雷达本身仍然不应答，最后是重启板卡才恢复。排查顺序建议是：先看 `lsusb` 有没有 `1a86:55db`，没有就是 USB 线的问题；有就断电重上电，不要反复重载驱动。
 
-3. **静态 IP 会放大失联风险。** 见 §12.4 末尾的提示。这次把 WiFi 改成 `manual` 后重启，板子有几分钟完全不在网络上，只能现场处理。
+3. **重启后板子有约 3 分钟不在网络上，这次不是静态 IP 的问题。** 事后看 `dmesg`，CH347 在启动 38 秒后自行 `USB disconnect`，没有 `over-current`、没有 hub reset，重新插拔后才以新的设备号回来。断开的时间点正好在雷达唤醒阶段，更像是供电跌落或 USB 线接触不良。排查时先看 `dmesg -T | grep -i disconnect`，再看 `lsusb` 有没有 `1a86:55db`。静态 IP 没有 DHCP 回退，仍然是失联风险（见 §12.4），但这次不是它。
