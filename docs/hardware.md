@@ -97,11 +97,12 @@ SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="1a86", ATTR{idProduct}=="55db"
 
 ### 3.1 帧率与时间基
 
-- **配置帧周期 10 ms**，理论 100 Hz；
-- **服务按 90 Hz 处理**：`radar_live.cpp` 以 `fs = 90 Hz` 建管线，分析窗 `922` 点（10.24 s × 90），步进 `90` 点（1 s），输出 1 Hz；
-- 实测帧号连续、无丢帧时，有效帧率落在 90 Hz 附近；帧号与设备计时（`core_ticks`）随每帧下发，用于审计丢帧与重复。
+- **板端默认帧周期 14 ms（约 71.4 Hz）**：CH347 走 USB-SPI 轮询，单帧一次往返约 13 ms，配 10 ms 周期时只能读到约 75 帧/秒，雷达侧稳定丢约 25%；
+- 帧周期由 `AURA_RADAR_FRAME_MS` 下发（`mmwc frame N 0`），管线时间基准由 `AURA_RADAR_FS` 指定，两者必须一致；
+- 分析窗为 10.24 s（`window = 10.24 × fs`），步进 1 s（`hop = fs`），输出 1 Hz；71.4 Hz 时窗长 731 点；
+- 实测 14 ms 周期下接收约 65 帧/秒、丢帧率约 10%；降到 10 ms 接收约 75 帧/秒、丢帧率约 25%。
 
-> 帧率是整条链路的分母：分析窗、滤波系数、HRV 时长门槛全部按 90 Hz 设计。改帧率必须同步重算这些参数，不能只改一处。
+> 帧率是整条链路的分母：分析窗、滤波系数、HRV 时长门槛全部按 `AURA_RADAR_FS` 设计。改帧率必须同步改 `AURA_RADAR_FS`，不能只改一处。
 
 ### 3.2 数据率
 
@@ -133,7 +134,7 @@ mmwc close / mmwc open    (600/1200 ms，仅状态可疑时)
 mmwc mode 4 1             (350 ms)
 mmwc freq 57000 66000     (250 ms)
 mmwc range 3072 24        (250 ms)
-mmwc frame 10 0           (250 ms)
+mmwc frame 14 0           (250 ms)   默认 14 ms，可用 AURA_RADAR_FRAME_MS 覆盖
 mmwc comtype 1                        数据切到 SPI
 mmwc report points 1
 mmwc report cube 1

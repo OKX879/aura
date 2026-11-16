@@ -66,7 +66,9 @@ install -Dm755 service/build/AuraService ${INSTALL_DIR:-/opt/aura/app}/AuraServi
 | `AURA_RADAR_ENABLE` | `1` | 0 = 不启采集线程 |
 | `AURA_RADAR_SPIDEV` | `/dev/spidev8.0` | 数据通道 |
 | `AURA_RADAR_UART` | `/dev/ttyACM0` | 命令通道 |
-| `AURA_RADAR_SPI_HZ` | `8000000` | SPI 时钟 |
+| `AURA_RADAR_SPI_HZ` | `8000000` | SPI 时钟；实测 16 MHz 会断流 |
+| `AURA_RADAR_FRAME_MS` | `14` | 雷达帧周期（ms），下发 `mmwc frame N 0`；10 ms 会让雷达侧排队丢帧 |
+| `AURA_RADAR_FS` | `71.4` | 管线时间基准（Hz），必须与帧周期一致 |
 | `AURA_RADAR_POLL_DELAY_US` | `4000` | 轮询指令与 SPI 读之间的微秒延时 |
 | `AURA_RADAR_READY_GPIO` | `-1` | 负值表示不用就绪 GPIO |
 | `AURA_RADAR_SIMPLEX` | `0` | 0 = 主机轮询；1 = 设备主动推送 |
@@ -78,7 +80,7 @@ install -Dm755 service/build/AuraService ${INSTALL_DIR:-/opt/aura/app}/AuraServi
 | `AURA_LIVE_CUBE` / `AURA_LIVE_META` | 注释 | 回放模式：给文件即不启雷达 |
 | `AURA_LIVE_SPEED` | `1.0` | 回放倍速 |
 
-改任一变量都只影响本进程，不需要重新编译；但帧率相关变量（`SPI_HZ`、`POLL_DELAY_US`）会改变实际采样率，必须与 `libaura` 的窗长/步进一起改。
+改任一变量都只影响本进程，不需要重新编译；但帧率相关变量（`FRAME_MS`、`FS`、`SPI_HZ`、`POLL_DELAY_US`）会改变实际采样率，必须与 `libaura` 的窗长/步进一起改。
 
 ---
 

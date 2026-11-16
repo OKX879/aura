@@ -45,6 +45,7 @@ private:
         unsigned int reads = 0;
         unsigned int msgLen = 0;
         unsigned int msgId = 0;
+        unsigned int coreTicks = 0;
     };
 
     void run();

@@ -230,6 +230,11 @@ RadarLive::RadarLive(
     const std::string& uartPath,
     unsigned int spiHz
 ) : spidevPath_(spidevPath), uartPath_(uartPath), spiHz_(spiHz) {
+    // 管线时间基准按实际帧率配置，默认 90 Hz
+    if (const char* fsEnv = std::getenv("AURA_RADAR_FS"); fsEnv && *fsEnv) {
+        const double value = std::strtod(fsEnv, nullptr);
+        if (value > 1.0 && value <= 1000.0) sampleRate_ = value;
+    }
     if (!ensureDevice()) {
         // 冷启动时 CH347 可能比服务晚枚举，交给 run() 在后台重试
         std::cerr << "RadarLive: " << spidevPath_
@@ -418,7 +423,13 @@ bool RadarLive::armUart(bool hardReset) {
     ok = sendUart(fd, "mmwc mode 4 1", 350) && ok;
     ok = sendUart(fd, "mmwc freq 57000 66000", 250) && ok;
     ok = sendUart(fd, "mmwc range 3072 24", 250) && ok;
-    ok = sendUart(fd, "mmwc frame 10 0", 250) && ok;
+    // 帧周期可配置：主机按固定节奏轮询时，周期过短会在雷达侧排队丢帧
+    const char* frameEnv = std::getenv("AURA_RADAR_FRAME_MS");
+    unsigned int frameMs = (frameEnv && *frameEnv)
+        ? static_cast<unsigned int>(std::strtoul(frameEnv, nullptr, 10)) : 10u;
+    if (frameMs == 0u || frameMs > 100u) frameMs = 10u;
+    const std::string frameCommand = "mmwc frame " + std::to_string(frameMs) + " 0";
+    ok = sendUart(fd, frameCommand.c_str(), 250) && ok;
     ok = sendUart(fd, "mmwc start", 800) && ok;
     ok = sendUart(fd, "mmwc stop", 250) && ok;
     ok = sendUart(fd, "mmwc comtype 1", 250) && ok;
@@ -473,6 +484,7 @@ void RadarLive::enqueueFrame() {
     frame.reads = capture->last_poll_reads;
     frame.msgLen = capture->last_message_length;
     frame.msgId = capture->last_message_id;
+    frame.coreTicks = capture->roi.core_ticks;
     const unsigned int total = channels * bins;
     frame.re.assign(total, 0.0f);
     frame.im.assign(total, 0.0f);
@@ -546,6 +558,7 @@ void RadarLive::processFrame(const PendingFrame& frame) {
     value["overrun"] = frame.overrun;
     value["msg_len"] = frame.msgLen;
     value["msg_id"] = frame.msgId;
+    value["core_ticks"] = frame.coreTicks;
     value["hr"] = number(snap.hr_bpm);
     value["hr_fft"] = number(snap.hr_fft);
     value["hr_acf"] = number(snap.hr_acf);

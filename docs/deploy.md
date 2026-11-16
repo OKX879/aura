@@ -430,6 +430,8 @@ ssh-copy-id -i ~/.ssh/aura_board_ed25519.pub root@<板端IP>
 | `AURA_RADAR_SPIDEV` | `/dev/spidev8.0` | 雷达数据通道 |
 | `AURA_RADAR_UART` | `/dev/ttyACM0` | 雷达命令行 |
 | `AURA_RADAR_SPI_HZ` | `8000000` | SPI 时钟 |
+| `AURA_RADAR_FRAME_MS` | `14` | 雷达帧周期（ms），配 10 ms 会稳定丢约 25% |
+| `AURA_RADAR_FS` | `71.4` | 管线时间基准（Hz），必须与帧周期一致 |
 | `AURA_RADAR_POLL_DELAY_US` | `4000` | 采帧线程两次读取之间的等待 |
 | `AURA_RADAR_READY_GPIO` | `-1`（不用） | 雷达 ready 引脚 |
 | `AURA_RADAR_SIMPLEX` | `0` | 设 `1` 启用 HIF 单工模式 |
