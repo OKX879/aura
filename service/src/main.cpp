@@ -201,8 +201,8 @@ int main() {
                 environment("AURA_RADAR_UART", "/dev/ttyACM0"),
                 static_cast<unsigned int>(integerEnvironment("AURA_RADAR_SPI_HZ", 8000000))
             );
-            if (radar->valid()) radar->start();
-            else radar.reset();
+            // 设备可能还没枚举出来，start() 之后由雷达线程自己等待并重连
+            radar->start();
         }
 #endif
 

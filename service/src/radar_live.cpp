@@ -230,11 +230,23 @@ RadarLive::RadarLive(
     const std::string& uartPath,
     unsigned int spiHz
 ) : spidevPath_(spidevPath), uartPath_(uartPath), spiHz_(spiHz) {
+    if (!ensureDevice()) {
+        // 冷启动时 CH347 可能比服务晚枚举，交给 run() 在后台重试
+        std::cerr << "RadarLive: " << spidevPath_
+                  << " not ready, will retry in background\n";
+    }
+}
+
+bool RadarLive::ensureDevice() {
+    if (device_ && capture_) return true;
+    if (device_) {
+        rs6240_spidev_close(static_cast<rs6240_spidev_t*>(device_));
+        device_ = nullptr;
+    }
     device_ = rs6240_spidev_open(spidevPath_.c_str(), spiHz_);
     if (!device_) {
-        std::cerr << "RadarLive: cannot open " << spidevPath_ << " at "
-                  << spiHz_ << " Hz\n";
-        return;
+        valid_ = false;
+        return false;
     }
     auto* capture = new rs6240_capture_t();
     std::memset(capture, 0, sizeof(*capture));
@@ -250,7 +262,8 @@ RadarLive::RadarLive(
         delete capture;
         rs6240_spidev_close(static_cast<rs6240_spidev_t*>(device_));
         device_ = nullptr;
-        return;
+        valid_ = false;
+        return false;
     }
     rs6240_capture_set_poll_command_delay(capture, 1u);
     // HOST_READ 后的稳定延时，默认 1 毫秒
@@ -262,6 +275,7 @@ RadarLive::RadarLive(
     valid_ = true;
     std::cout << "RadarLive: spidev=" << spidevPath_ << " uart=" << uartPath_
               << " spi=" << spiHz_ << " Hz\n";
+    return true;
 }
 
 RadarLive::~RadarLive() {
@@ -286,7 +300,7 @@ bool RadarLive::valid() const {
 }
 
 void RadarLive::start() {
-    if (!valid_ || running_.exchange(true)) return;
+    if (running_.exchange(true)) return;
     startedAtMs_ = nowMs();
     {
         std::lock_guard<std::mutex> lock(queueMutex_);
@@ -555,6 +569,22 @@ void RadarLive::processFrame(const PendingFrame& frame) {
 }
 
 void RadarLive::run() {
+    // 设备可能比服务晚枚举（冷启动时 CH347 的 USB probe 是异步的），
+    // 这里等它出现，而不是让进程带着空句柄跑到底
+    unsigned int openAttempts = 0;
+    while (running_ && !ensureDevice()) {
+        ++openAttempts;
+        if (openAttempts == 1 || openAttempts % 15u == 0u) {
+            std::cerr << "RadarLive: waiting for " << spidevPath_
+                      << " (attempts=" << openAttempts << ")\n";
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+    }
+    if (!running_) return;
+    if (openAttempts > 0) {
+        std::cout << "RadarLive: device ready after " << openAttempts
+                  << " retries\n";
+    }
     const int readyFd = openReadyGpio();
     g_readyFd = readyFd;
     std::cout << "RadarLive: frame-ready GPIO "

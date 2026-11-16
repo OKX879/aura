@@ -48,6 +48,8 @@ private:
     };
 
     void run();
+    // 打开 spidev 并初始化抓取上下文；设备比服务晚枚举时由 run() 反复重试
+    bool ensureDevice();
     bool armUart(bool hardReset = false);
     bool disarmUart();
     bool doWake();
