@@ -1,26 +1,38 @@
 package com.aura.android.data.ai
 
 import com.aura.android.data.DemoData
+import com.aura.android.data.LiveMonitor
 import com.aura.android.data.LocalMode
 import com.aura.android.data.api.ApiClient
 import com.aura.android.data.api.ApiResult
 import com.aura.android.data.api.toApiResult
+import com.aura.android.data.model.Alert
+import com.aura.android.data.model.Device
+import com.aura.android.data.model.FocusRecord
+import com.aura.android.data.model.LiveSnapshot
 import com.aura.android.data.model.MobileDashboard
+import com.aura.android.data.model.TodaySummary
+import com.aura.android.data.model.TrendPoint
 import com.aura.android.data.model.VitalsPoint
 
 // 送给模型的体征快照
 data class VitalsSnapshot(
     val userName: String,
-    val todaySummary: com.aura.android.data.model.TodaySummary,
-    val latest: com.aura.android.data.model.FocusRecord?,
+    val todaySummary: TodaySummary,
+    val latest: FocusRecord?,
     val vitals: List<VitalsPoint>,
     val unresolvedAlerts: Int,
-    val alertMessages: List<String>,
     val onlineDevices: Int,
-    val totalDevices: Int
+    val totalDevices: Int,
+    val alerts: List<Alert> = emptyList(),
+    val devices: List<Device> = emptyList(),
+    val hourlyTrend: List<TrendPoint> = emptyList(),
+    val live: LiveSnapshot? = null,
+    val liveOnline: Boolean = false,
+    val userRole: String? = null
 ) {
 
-    private val recentVitals: List<VitalsPoint> get() = vitals.takeLast(12)
+    private val recentVitals: List<VitalsPoint> get() = vitals.takeLast(30)
 
     private fun avg(values: List<Float>): Float? =
         if (values.isEmpty()) null else values.average().toFloat()
@@ -48,14 +60,14 @@ data class VitalsSnapshot(
     // 心率波动幅度
     val heartRateSwing: Float?
         get() {
-            val values = recentVitals.mapNotNull { it.heartRate?.toFloat() }
+            val values = trendVitals.mapNotNull { it.heartRate?.toFloat() }
             if (values.size < 2) return null
             return values.max() - values.min()
         }
 
     val stressTrend: String
         get() {
-            val values = recentVitals.mapNotNull { it.stressLevel?.toFloat() }
+            val values = trendVitals.mapNotNull { it.stressLevel?.toFloat() }
             if (values.size < 4) return "样本不足"
             val first = values.take(values.size / 2).average()
             val second = values.drop(values.size / 2).average()
@@ -67,32 +79,203 @@ data class VitalsSnapshot(
             }
         }
 
+    private val trendVitals: List<VitalsPoint> get() = vitals.takeLast(12)
+
     fun focusAverage(): Float? = avg(recentVitals.map { it.focusScore.toFloat() })
 
     fun toPrompt(): String = buildString {
         appendLine("【AURA 雷达体征数据】")
-        appendLine("当前时间：${java.time.ZonedDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm EEEE", java.util.Locale.CHINA))}（设备本地时区）")
-        appendLine("用户：$userName")
         appendLine(
-            "最新一帧：心率 ${fmt(currentHeartRate)} 次/分，呼吸 ${fmt(currentRespiration)} 次/分，" +
-                "专注 ${fmt(currentFocus)} 分，压力 ${fmt(currentStress)} 分，疲劳 ${fmt(currentFatigue)} 分"
+            "当前时间：${
+                java.time.ZonedDateTime.now().format(
+                    java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm EEEE", java.util.Locale.CHINA)
+                )
+            }（设备本地时区）"
         )
+        appendLine("用户：$userName${userRole?.takeIf { it.isNotBlank() }?.let { "（${roleLabel(it)}）" } ?: ""}")
+        appendLine()
+
+        appendLine("■ 采集状态")
+        val liveSnapshot = live
+        if (liveSnapshot != null) {
+            appendLine(
+                "· 雷达链路${if (liveSnapshot.running) "运行中" else "未运行"}，" +
+                    "累计 ${liveSnapshot.frames} 帧，错误 ${liveSnapshot.errors}，丢帧 ${liveSnapshot.lost}"
+            )
+            val frame = liveSnapshot.latest
+            if (frame != null) {
+                appendLine(
+                    "· 当帧信号：${if (frame.presence == 1) "检测到人" else "未检测到人"}，" +
+                        "体动 ${if (frame.motion == 1) "有" else "无"}" +
+                        (frame.motionLevel?.let { "（强度 ${ratio(it)}）" } ?: "") +
+                        "，置信度 ${ratio(frame.conf)}，相干性 ${ratio(frame.coh)}"
+                )
+            } else {
+                appendLine("· 当帧信号：算法尚未输出")
+            }
+        } else {
+            appendLine(
+                "· 实时链路：" + (if (liveOnline) "服务在线但尚未收到快照" else "App 尚未连上雷达服务") +
+                    "，以下为最近入库的数据"
+            )
+        }
         appendLine(
-            "今日汇总：记录 ${todaySummary.recordCount} 条，平均心率 ${fmt(todaySummary.averageHeartRate?.toFloat())}" +
-                "（${fmt(todaySummary.minHeartRate?.toFloat())}–${fmt(todaySummary.maxHeartRate?.toFloat())}），" +
-                "平均呼吸 ${fmt(todaySummary.averageRespirationRate?.toFloat())}，" +
-                "平均专注 ${fmt(todaySummary.averageFocus.toFloat())}（最高 ${fmt(todaySummary.maxFocus.toFloat())} / " +
-                "最低 ${fmt(todaySummary.minFocus.toFloat())}），平均压力 ${fmt(todaySummary.averageStress?.toFloat())}，" +
-                "平均疲劳 ${fmt(todaySummary.averageFatigue?.toFloat())}"
+            "· 数据窗口：近 24 小时 ${vitals.size} 个采样点" +
+                (if (vitals.size >= 2) "，${localTime(vitals.first().time)}–${localTime(vitals.last().time)}" else "") +
+                (sampleIntervalMinutes()?.let { "，约每 $it 分钟 1 条" } ?: "")
         )
+        appendLine()
+
+        appendLine("■ 最新一帧（${localTime(latest?.recordedAt)}）")
         appendLine(
-            "近 ${recentVitals.size} 个采样点：心率波动 ${fmt(heartRateSwing)}，" +
-                "专注均值 ${fmt(focusAverage())}，压力趋势 $stressTrend"
+            "心率 ${fmt(currentHeartRate)} 次/分｜呼吸 ${fmt(currentRespiration)} 次/分｜" +
+                "专注 ${fmt(currentFocus)} 分｜压力 ${fmt(currentStress)} 分｜疲劳 ${fmt(currentFatigue)} 分"
         )
-        appendLine("设备：在线 $onlineDevices / 共 $totalDevices")
-        appendLine("未处理告警：$unresolvedAlerts 条${if (alertMessages.isEmpty()) "" else "（" + alertMessages.joinToString("；") + "）"}")
-        appendLine("数据口径：全部为毫米波雷达非接触测量，心率静息基线约 68 次/分。")
+        latest?.let { record ->
+            val detail = buildList {
+                record.nnHeartRate?.let { add("神经网络 ${fmt(it.toFloat())}") }
+                record.cHeartRate?.let { add("相关法 ${fmt(it.toFloat())}") }
+                record.ppiHeartRate?.let { add("PPI ${fmt(it.toFloat())}") }
+                record.medianPpiMs?.let { add("PPI 中位间隔 ${fmt(it.toFloat())} ms") }
+                record.nnQuality?.let { add("模型质量 ${ratio(it)}") }
+                record.cRespirationRate?.let { add("相关法呼吸 ${fmt(it.toFloat())}") }
+            }
+            if (detail.isNotEmpty()) appendLine("算法明细：${detail.joinToString("，")}")
+        }
+        appendLine()
+
+        appendLine("■ 今日汇总（00:00 起）")
+        if (todaySummary.recordCount <= 0) {
+            appendLine("今日暂无入库记录。")
+        } else {
+            appendLine("记录 ${todaySummary.recordCount} 条")
+            appendLine(
+                "心率：平均 ${fmt(todaySummary.averageHeartRate?.toFloat())}，" +
+                    "区间 ${fmt(todaySummary.minHeartRate?.toFloat())}–${fmt(todaySummary.maxHeartRate?.toFloat())}"
+            )
+            appendLine("呼吸：平均 ${fmt(todaySummary.averageRespirationRate?.toFloat())} 次/分")
+            appendLine(
+                "专注：平均 ${fmt(todaySummary.averageFocus.toFloat())}，" +
+                    "最高 ${fmt(todaySummary.maxFocus.toFloat())}，最低 ${fmt(todaySummary.minFocus.toFloat())}"
+            )
+            appendLine(
+                "压力：平均 ${fmt(todaySummary.averageStress?.toFloat())}；" +
+                    "疲劳：平均 ${fmt(todaySummary.averageFatigue?.toFloat())}"
+            )
+        }
+        appendLine()
+
+        appendLine("■ 近 ${recentVitals.size} 个采样点")
+        appendLine("心率 ${rangeOf { it.heartRate?.toFloat() }.let { "平均 ${it.first}（${it.second}）" }}｜" +
+            "呼吸 ${rangeOf { it.respirationRate?.toFloat() }.let { "平均 ${it.first}（${it.second}）" }}")
+        appendLine("专注 ${rangeOf { it.focusScore.toFloat() }.let { "平均 ${it.first}（${it.second}）" }}｜" +
+            "压力 ${rangeOf { it.stressLevel?.toFloat() }.let { "平均 ${it.first}（${it.second}）" }}｜" +
+            "疲劳 ${rangeOf { it.fatigueLevel?.toFloat() }.let { "平均 ${it.first}（${it.second}）" }}")
+        appendLine("逐点（最近 10 点）：")
+        recentVitals.takeLast(10).forEach { point ->
+            appendLine(
+                "  ${localTime(point.time)} 心率 ${fmt(point.heartRate?.toFloat())}｜" +
+                    "呼吸 ${fmt(point.respirationRate?.toFloat())}｜" +
+                    "专注 ${fmt(point.focusScore.toFloat())}｜压力 ${fmt(point.stressLevel?.toFloat())}"
+            )
+        }
+        appendLine()
+
+        val trend = hourlyTrend.takeLast(6)
+        if (trend.isNotEmpty()) {
+            appendLine("■ 小时趋势（最近 ${trend.size} 小时）")
+            trend.forEach { point ->
+                appendLine("  ${localTime(point.time)} 平均专注 ${fmt(point.averageFocus.toFloat())}")
+            }
+            appendLine()
+        }
+
+        appendLine("■ 设备")
+        if (devices.isEmpty()) {
+            appendLine("· 暂无设备信息（在线 $onlineDevices / 共 $totalDevices）")
+        } else {
+            devices.forEach { device ->
+                val room = device.roomName?.takeIf { it.isNotBlank() }?.let { "（$it）" } ?: ""
+                val seen = device.lastSeenAt.takeIf { it.isNotBlank() }?.let { "，最后上报 ${localTime(it)}" } ?: ""
+                appendLine("· ${device.name}$room ${if (device.status == "online") "在线" else "离线"}$seen")
+            }
+            appendLine("· 合计在线 $onlineDevices / 共 $totalDevices")
+        }
+        appendLine()
+
+        appendLine("■ 告警")
+        appendLine("· 未处理 $unresolvedAlerts 条")
+        alerts.take(5).forEach { alert ->
+            val state = if (alert.isResolved) "已处理" else "未处理"
+            appendLine("· [${severityLabel(alert.severity)}] ${localTime(alert.createdAt)} ${alert.message}（$state）")
+        }
+        appendLine()
+
+        appendLine("■ 数据口径")
+        appendLine("· 全部为毫米波雷达非接触测量，心率静息基线约 68 次/分；缺失字段表示当帧无有效值，不要编造。")
+        appendLine("· 采样点少于 3 个或跨度不足 10 分钟时，不要对趋势下结论。")
     }
+
+    private fun rangeOf(pick: (VitalsPoint) -> Float?): Pair<String, String> {
+        val values = recentVitals.mapNotNull(pick)
+        if (values.isEmpty()) return "无有效值" to "无有效值"
+        return String.format("%.0f", values.average()) to
+            "${String.format("%.0f", values.min())}–${String.format("%.0f", values.max())}"
+    }
+
+    private fun sampleIntervalMinutes(): Int? {
+        if (vitals.size < 2) return null
+        val first = parseInstant(vitals.first().time) ?: return null
+        val last = parseInstant(vitals.last().time) ?: return null
+        val minutes = java.time.Duration.between(first, last).toMinutes()
+        if (minutes <= 0) return null
+        return (minutes / (vitals.size - 1)).toInt().takeIf { it > 0 }
+    }
+
+    private fun localTime(raw: String?): String {
+        if (raw.isNullOrBlank()) return "—"
+        val instant = parseInstant(raw) ?: return raw
+        val zone = java.time.ZoneId.systemDefault()
+        val time = instant.atZone(zone)
+        val today = java.time.LocalDate.now(zone)
+        val pattern = if (time.toLocalDate() == today) "HH:mm" else "MM-dd HH:mm"
+        return time.format(java.time.format.DateTimeFormatter.ofPattern(pattern))
+    }
+
+    private fun parseInstant(raw: String): java.time.Instant? {
+        runCatching { return java.time.Instant.parse(raw) }
+        runCatching { return java.time.OffsetDateTime.parse(raw).toInstant() }
+        runCatching {
+            return java.time.LocalDateTime.parse(raw)
+                .atZone(java.time.ZoneId.systemDefault()).toInstant()
+        }
+        runCatching {
+            return java.time.LocalDateTime.parse(
+                raw,
+                java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+            ).atZone(java.time.ZoneId.systemDefault()).toInstant()
+        }
+        return null
+    }
+
+    private fun severityLabel(severity: String): String = when (severity.lowercase()) {
+        "high" -> "高"
+        "medium" -> "中"
+        "low" -> "低"
+        else -> severity
+    }
+
+    private fun roleLabel(role: String): String = when (role.lowercase()) {
+        "admin" -> "管理员"
+        "manager" -> "主管"
+        "employee" -> "员工"
+        "user" -> "用户"
+        "guest" -> "访客"
+        else -> role
+    }
+
+    private fun ratio(value: Double?): String =
+        value?.let { String.format("%.2f", it) } ?: "无有效值"
 
     private fun fmt(v: Float?): String = v?.let { String.format("%.0f", it) } ?: "无有效值"
 }
@@ -113,9 +296,14 @@ object VitalsContext {
             latest = dashboard.latestRecord,
             vitals = dashboard.vitalsHistory,
             unresolvedAlerts = dashboard.alertSummary.unresolvedCount,
-            alertMessages = dashboard.alertSummary.recent.take(3).map { it.message },
             onlineDevices = dashboard.deviceSummary.online,
-            totalDevices = dashboard.deviceSummary.total
+            totalDevices = dashboard.deviceSummary.total,
+            alerts = dashboard.alertSummary.recent,
+            devices = dashboard.deviceSummary.recent,
+            hourlyTrend = dashboard.recentTrend,
+            live = LiveMonitor.snapshot.value,
+            liveOnline = LiveMonitor.online.value,
+            userRole = dashboard.user.role
         )
     }
 
@@ -126,8 +314,10 @@ object VitalsContext {
         appendLine("1. 涉及“我/我的”体征数值时，以给定快照为准，不要编造；需要补充通用医学或生活知识时，可以自然展开。")
         appendLine("2. 回答结构自己决定，不必套固定模板，长度按问题需要；尽量先给直接答案。")
         appendLine("3. 遇到新闻、实时数据、价格、政策、赛事、人物近况等超出知识范围的问题，先调用 web_search 再回答，并在末尾注明信息来源。检索只能通过工具调用发起，不要把调用标记或 DSML 写进正文。")
-        appendLine("4. 语气专业克制，不做疾病诊断；提示异常时说明这只是趋势提示，确诊需就医。")
-        appendLine("5. 输出纯文本，可用换行和短横线分点，但不要使用 Markdown 星号或井号。")
+        appendLine("4. 结合快照里的采集状态、算法质量与告警判断数据是否可信；数据缺失或链路异常时要点明，不要硬解释。")
+        appendLine("5. 回答时按需引用趋势与逐点数据支撑结论，但不要整段复述快照字段。")
+        appendLine("6. 语气专业克制，不做疾病诊断；提示异常时说明这只是趋势提示，确诊需就医。")
+        appendLine("7. 输出纯文本，可用换行和短横线分点，但不要使用 Markdown 星号或井号。")
         appendLine()
         appendLine(snapshot.toPrompt())
     }

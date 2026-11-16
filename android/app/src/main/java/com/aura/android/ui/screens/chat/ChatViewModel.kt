@@ -99,8 +99,7 @@ class ChatViewModel(
         viewModelScope.launch {
             val data = snapshot ?: VitalsContext.load().also { snapshot = it }
             try {
-                if (data == null) {
-                    messages.add(
+                if (data == null) {                    messages.add(
                         ChatItem(
                             role = "assistant",
                             content = "暂时读不到体征数据，请先在首页刷新一次再问我。",
@@ -156,7 +155,7 @@ class ChatViewModel(
         val history = messages
             .dropLast(1)
             .filter { it.content.isNotBlank() }
-            .takeLast(6)
+            .takeLast(12)
             .map { ChatMessage(role = it.role, content = it.content) }
         val payload = buildList {
             add(ChatMessage(role = "system", content = VitalsContext.systemPrompt(data)))
