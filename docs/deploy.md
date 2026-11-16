@@ -458,11 +458,3 @@ ssh-copy-id -i ~/.ssh/aura_board_ed25519.pub root@<板端IP>
 | 处理链回放 | `AURA_LIVE_CUBE=patient_1_cube.bin` | 3000 帧；快照 `hr_fft=67.1`、`hr_acf=75.9`、`resp_hz=0.398` | 30 s |
 
 **本次未验证的部分**：重编 CH347 内核模块、重编 Drogon。这两步在目标机上已经装好，重编要一到两小时，而且会中断正在采集的服务。它们的环境要求写在 §2–§4，命令原样可用。
-
-### 14.1 两个实测踩到的坑
-
-1. **空库能启动，但只有 `/health` 能用。** 服务只建库文件、不建表，跳过 `deploy/schema.sql` 时 `/health` 仍返回 `ok`，而 `/api/v1/auth/pair` 会直接抛 `no such table: users`。先建表，再启动。
-
-2. **硬件雷达异常退出后可能挂死，软件复位不回来。** 停掉服务、换另一个进程打开 `/dev/spidev8.0` 之后，雷达 UART 停止应答（`no reply to 'mmwc start'`、`HIF wake failed: -3`）。重载 `ch34x_mphsi_master`、USB unbind/bind 只能让 SPI 节点回来，雷达本身仍然不应答，最后是重启板卡才恢复。排查顺序建议是：先看 `lsusb` 有没有 `1a86:55db`，没有就是 USB 线的问题；有就断电重上电，不要反复重载驱动。
-
-3. **重启后板子有约 3 分钟不在网络上，这次不是静态 IP 的问题。** 事后看 `dmesg`，CH347 在启动 38 秒后自行 `USB disconnect`，没有 `over-current`、没有 hub reset，重新插拔后才以新的设备号回来。断开的时间点正好在雷达唤醒阶段，更像是供电跌落或 USB 线接触不良。排查时先看 `dmesg -T | grep -i disconnect`，再看 `lsusb` 有没有 `1a86:55db`。静态 IP 没有 DHCP 回退，仍然是失联风险（见 §12.4），但这次不是它。
