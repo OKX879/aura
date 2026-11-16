@@ -364,6 +364,26 @@ Json::Value Database::latestRecords(const std::string& userId, bool isAdmin, int
     });
 }
 
+Json::Value Database::records(const std::string& userId, int hours, int limit) {
+    const int safeHours = std::clamp(hours, 1, 168);
+    const int safeLimit = std::clamp(limit, 1, 480);
+    const std::string modifier = "-" + std::to_string(safeHours) + " hours";
+    return queryArray(
+        "SELECT time,focusScore,heartRate,respirationRate,stressLevel,fatigueLevel FROM ("
+        "SELECT recorded_at AS time,focus_score AS focusScore,heart_rate AS heartRate,"
+        "respiration_rate AS respirationRate,stress_level AS stressLevel,"
+        "fatigue_level AS fatigueLevel FROM focus_records WHERE user_id=? AND "
+        "datetime(replace(replace(recorded_at,'T',' '),'Z','')) >= datetime('now', ?) "
+        "ORDER BY recorded_at DESC LIMIT ?"
+        ") ORDER BY time ASC",
+        [&](sqlite3_stmt* s) {
+            bindText(s, 1, userId);
+            bindText(s, 2, modifier);
+            sqlite3_bind_int(s, 3, safeLimit);
+        }
+    );
+}
+
 Json::Value Database::mobileDashboard(const std::string& userId) {
     const auto user = findUserById(userId);
     if (!user) throw std::runtime_error("USER_NOT_FOUND");

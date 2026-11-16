@@ -15,11 +15,13 @@ import com.aura.android.data.model.SignupRequest
 import com.aura.android.data.model.MobileDashboard
 import com.aura.android.data.model.UpdateProfileRequest
 import com.aura.android.data.model.User
+import com.aura.android.data.model.VitalsPoint
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 // 后端 API 接口定义
 interface AuraApi {
@@ -43,6 +45,12 @@ interface AuraApi {
 
     @GET("api/v1/mobile/dashboard")
     suspend fun getDashboard(): ApiResponse<MobileDashboard>
+
+    @GET("api/v1/mobile/records")
+    suspend fun getRecords(
+        @Query("hours") hours: Int,
+        @Query("limit") limit: Int
+    ): ApiResponse<List<VitalsPoint>>
 
     @GET("api/v1/live/snapshot")
     suspend fun getLiveSnapshot(): ApiResponse<LiveSnapshot>

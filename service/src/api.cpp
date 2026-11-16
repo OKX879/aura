@@ -821,6 +821,20 @@ void registerApiRoutes(
             callback(success(database->mobileDashboard(user->id)));
         }, {Get});
 
+    // 供 AI 主动检索：按小时范围取体征记录
+    app().registerHandler("/api/v1/mobile/records",
+        [database, auth](const HttpRequestPtr& request, Callback&& callback) {
+            const auto user = requireUser(request, auth, callback);
+            if (!user) return;
+            int hours = 6;
+            int limit = 120;
+            const auto& hoursParam = request->getParameter("hours");
+            if (!hoursParam.empty()) hours = std::atoi(hoursParam.c_str());
+            const auto& limitParam = request->getParameter("limit");
+            if (!limitParam.empty()) limit = std::atoi(limitParam.c_str());
+            callback(success(database->records(user->id, hours, limit)));
+        }, {Get});
+
     app().registerHandler("/api/v1/mobile/chat",
         [database, auth](const HttpRequestPtr& request, Callback&& callback) {
             const auto user = requireUser(request, auth, callback);

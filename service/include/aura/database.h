@@ -46,6 +46,8 @@ public:
         double focus);
     Json::Value alerts(const std::string& userId, bool isAdmin, bool unresolvedOnly, int limit = 1000);
     Json::Value latestRecords(const std::string& userId, bool isAdmin, int limit);
+    // 按时间范围查询体征记录（小时数 1-168，条数上限 480），供 AI 主动检索
+    Json::Value records(const std::string& userId, int hours, int limit);
     Json::Value mobileDashboard(const std::string& userId);
     int ingestRecords(
         const Json::Value& records,

@@ -72,7 +72,7 @@ data class AiReply(
 // OpenAI 兼容接口客户端
 object AiClient {
 
-    private const val MAX_TOOL_ROUNDS = 2
+    private const val MAX_TOOL_ROUNDS = 3
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
@@ -102,14 +102,14 @@ object AiClient {
         var round = 0
         var finalRoundNotified = false
         while (true) {
-            val toolsAvailable = allowWebSearch && round < MAX_TOOL_ROUNDS
+            val toolsAvailable = round < MAX_TOOL_ROUNDS
             // 最后一轮提示只输出正文
             if (!toolsAvailable && !finalRoundNotified) {
                 finalRoundNotified = true
                 history.add(
                     buildJsonObject {
                         put("role", "system")
-                        put("content", "检索阶段已结束。现在只输出面向用户的最终回答，不要再调用或模拟任何工具，也不要输出 DSML/XML 形式的调用标记。")
+                        put("content", "数据查询阶段已结束。现在只输出面向用户的最终回答，不要再调用或模拟任何工具，也不要输出 DSML/XML 形式的调用标记。")
                     }
                 )
             }
@@ -119,7 +119,10 @@ object AiClient {
                 put("stream", false)
                 putJsonArray("messages") { history.forEach { add(it) } }
                 if (toolsAvailable) {
-                    putJsonArray("tools") { add(webSearchTool()) }
+                    putJsonArray("tools") {
+                        LocalDataTools.definitions.forEach { add(it) }
+                        if (allowWebSearch) add(webSearchTool())
+                    }
                 }
             }.toString()
 
@@ -154,24 +157,29 @@ object AiClient {
                         .jsonObject["query"]?.jsonPrimitive?.contentOrNull
                 }.getOrNull()?.takeIf { it.isNotBlank() }
 
-                val results = if (name == "web_search" && query != null) {
-                    runCatching { WebSearch.search(query) }.getOrDefault(emptyList())
-                } else {
-                    emptyList()
-                }
-                android.util.Log.d(
-                    "AuraAI",
-                    "tool=$name query=$query results=${results.size}"
-                )
-                sources += results
-
-                val text = if (results.isEmpty()) {
-                    "没有检索到结果，请基于已有知识回答，并说明未能联网核实。"
-                } else {
-                    results.joinToString("\n\n") {
-                        "标题：${it.title}\n摘要：${it.snippet}\n链接：${it.url}"
+                val text = if (name == "web_search") {
+                    val results = if (query != null) {
+                        runCatching { WebSearch.search(query) }.getOrDefault(emptyList())
+                    } else {
+                        emptyList()
                     }
+                    sources += results
+                    if (results.isEmpty()) {
+                        "没有检索到结果，请基于已有知识回答，并说明未能联网核实。"
+                    } else {
+                        results.joinToString("\n\n") {
+                            "标题：${it.title}\n摘要：${it.snippet}\n链接：${it.url}"
+                        }
+                    }
+                } else if (name != null) {
+                    val toolArgs = runCatching {
+                        json.parseToJsonElement(arguments.orEmpty()).jsonObject
+                    }.getOrDefault(buildJsonObject {})
+                    LocalDataTools.execute(name, toolArgs)
+                } else {
+                    "未知工具调用，请直接回答用户。"
                 }
+                android.util.Log.d("AuraAI", "tool=$name args=$arguments result=${text.length}字")
                 history.add(
                     buildJsonObject {
                         put("role", "tool")
