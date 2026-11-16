@@ -18,10 +18,10 @@ Environment=AURA_RADAR_ENABLE=1
 Environment=AURA_RADAR_SPIDEV=/dev/spidev8.0
 Environment=AURA_RADAR_UART=/dev/ttyACM0
 Environment=AURA_RADAR_SPI_HZ=8000000
-# 帧周期 14 ms（约 71.4 Hz）：CH347 轮询单帧约需 13 ms，10 ms 周期会稳定丢约 25%
-Environment=AURA_RADAR_FRAME_MS=14
+# 帧周期 10 ms（100 Hz）：帧率优先；CH347 轮询约 13 ms/帧，实际接收约 75 帧/秒（丢约 25%）
+Environment=AURA_RADAR_FRAME_MS=10
 # 管线时间基准必须与帧周期一致，改帧率要同步改这里
-Environment=AURA_RADAR_FS=71.4
+Environment=AURA_RADAR_FS=90
 Environment=AURA_RADAR_POLL_DELAY_US=4000
 Environment=AURA_RADAR_READY_GPIO=-1
 Environment=AURA_RADAR_SIMPLEX=0

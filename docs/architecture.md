@@ -67,8 +67,8 @@ install -Dm755 service/build/AuraService ${INSTALL_DIR:-/opt/aura/app}/AuraServi
 | `AURA_RADAR_SPIDEV` | `/dev/spidev8.0` | 数据通道 |
 | `AURA_RADAR_UART` | `/dev/ttyACM0` | 命令通道 |
 | `AURA_RADAR_SPI_HZ` | `8000000` | SPI 时钟；实测 16 MHz 会断流 |
-| `AURA_RADAR_FRAME_MS` | `14` | 雷达帧周期（ms），下发 `mmwc frame N 0`；10 ms 会让雷达侧排队丢帧 |
-| `AURA_RADAR_FS` | `71.4` | 管线时间基准（Hz），必须与帧周期一致 |
+| `AURA_RADAR_FRAME_MS` | `10` | 雷达帧周期（ms），下发 `mmwc frame N 0`；10 ms = 100 Hz，帧率优先 |
+| `AURA_RADAR_FS` | `90` | 管线时间基准（Hz），必须与帧周期一致 |
 | `AURA_RADAR_POLL_DELAY_US` | `4000` | 轮询指令与 SPI 读之间的微秒延时 |
 | `AURA_RADAR_READY_GPIO` | `-1` | 负值表示不用就绪 GPIO |
 | `AURA_RADAR_SIMPLEX` | `0` | 0 = 主机轮询；1 = 设备主动推送 |
