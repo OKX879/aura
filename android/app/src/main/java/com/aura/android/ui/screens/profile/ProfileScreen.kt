@@ -65,6 +65,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.aura.android.AuraApplication
+import com.aura.android.data.AlertNotifier
 import com.aura.android.data.LocalMode
 import com.aura.android.data.ai.AiConfig
 import com.aura.android.data.api.ApiClient
@@ -90,6 +92,7 @@ import com.aura.android.ui.theme.Surface
 import com.aura.android.ui.theme.Wallpaper
 import com.aura.android.ui.theme.WallpaperPreset
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -107,7 +110,11 @@ fun ProfileScreen(
     val s = com.aura.android.ui.i18n.LocalStrings.current
     var showServerDialog by remember { mutableStateOf(false) }
     var serverDraft by remember { mutableStateOf("") }
-    var notificationsOn by remember { mutableStateOf(true) }
+    val app = context.applicationContext as AuraApplication
+    var notificationsOn by remember { mutableStateOf(AlertNotifier.enabled) }
+    LaunchedEffect(Unit) {
+        notificationsOn = app.tokenDataStore.notificationsEnabled.first()
+    }
     var showAiDialog by remember { mutableStateOf(false) }
     var aiBaseDraft by remember { mutableStateOf("") }
     var aiKeyDraft by remember { mutableStateOf("") }
@@ -233,7 +240,14 @@ fun ProfileScreen(
                         SettingRow(
                             title = s.profile.notifications,
                             value = if (notificationsOn) s.profile.enabled else s.profile.disabled,
-                            onClick = { notificationsOn = !notificationsOn }
+                            onClick = {
+                                notificationsOn = !notificationsOn
+                                AlertNotifier.enabled = notificationsOn
+                                scope.launch {
+                                    app.tokenDataStore
+                                        .saveNotificationsEnabled(notificationsOn)
+                                }
+                            }
                         )
                         SettingDivider()
                         SettingRow(title = s.profile.about, value = s.profile.version + " 1.1.4")

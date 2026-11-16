@@ -210,6 +210,7 @@ object LiveMonitor {
                         createdAt = stamp(now)
                     )
                     state.alert?.let(AlertHistory::record)
+                    notifyIfNeeded(type, message)
                     publish()
                 }
             } else if (state.alert?.message != message) {
@@ -224,6 +225,7 @@ object LiveMonitor {
                 if (now - state.clearSinceMs >= 5_000) {
                     rules.remove(type)
                     publish()
+                    cancelIfRecovered()
                 }
             }
         }
@@ -241,6 +243,7 @@ object LiveMonitor {
                 createdAt = stamp(System.currentTimeMillis())
             )
             state.alert?.let(AlertHistory::record)
+            notifyIfNeeded(type, message)
             publish()
         } else if (state.alert?.message != message) {
             state.alert = state.alert?.copy(message = message)
@@ -249,12 +252,34 @@ object LiveMonitor {
     }
 
     private fun clear(type: String) {
-        if (rules.remove(type) != null) publish()
+        if (rules.remove(type) != null) {
+            publish()
+            cancelIfRecovered()
+        }
     }
 
     // 忽略一条实时告警
     fun dismiss(type: String) {
-        if (rules.remove(type) != null) publish()
+        if (rules.remove(type) != null) {
+            publish()
+            cancelIfRecovered()
+        }
+    }
+
+    // 只对连接类告警发系统通知，其余留在 App 内
+    private fun notifyIfNeeded(type: String, message: String) {
+        when (type) {
+            "device_offline" -> AlertNotifier.post("雷达已断开", message)
+            "radar_stalled" -> AlertNotifier.post("雷达数据已中断", message)
+        }
+    }
+
+    private fun cancelIfRecovered() {
+        // rules 里始终存在全部规则的空壳，必须看是否还有真实告警
+        val stillAbnormal = rules.entries.any { (type, state) ->
+            state.alert != null && (type == "device_offline" || type == "radar_stalled")
+        }
+        if (!stillAbnormal) AlertNotifier.cancel()
     }
 
     private fun publish() {

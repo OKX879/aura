@@ -2,6 +2,7 @@ package com.aura.android
 
 import android.app.Application
 import com.aura.android.data.AlertHistory
+import com.aura.android.data.AlertNotifier
 import com.aura.android.data.api.ApiClient
 import com.aura.android.data.datastore.TokenDataStore
 import com.aura.android.ui.i18n.AppLanguage
@@ -20,6 +21,7 @@ class AuraApplication : Application() {
         super.onCreate()
         tokenDataStore = TokenDataStore(this)
         AlertHistory.init(this)
+        AlertNotifier.init(this)
 
         runBlocking {
             tokenDataStore.serverUrl.first()?.let(ApiClient::configureBaseUrl)
@@ -29,6 +31,7 @@ class AuraApplication : Application() {
                 tokenDataStore.wallpaperPreset.first(),
                 tokenDataStore.wallpaperPath.first()
             )
+            AlertNotifier.enabled = tokenDataStore.notificationsEnabled.first()
         }
 
         // 注入 Token 提供器

@@ -3,6 +3,7 @@ package com.aura.android.data.datastore
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -24,6 +25,7 @@ class TokenDataStore(private val context: Context) {
         private val LANGUAGE_KEY = stringPreferencesKey("language_tag")
         private val WALLPAPER_PRESET_KEY = stringPreferencesKey("wallpaper_preset")
         private val WALLPAPER_PATH_KEY = stringPreferencesKey("wallpaper_path")
+        private val NOTIFICATIONS_KEY = booleanPreferencesKey("notifications_enabled")
     }
 
     val token: Flow<String?> = context.dataStore.data.map { prefs ->
@@ -62,6 +64,11 @@ class TokenDataStore(private val context: Context) {
         prefs[WALLPAPER_PATH_KEY]
     }
 
+    // 设备异常通知开关，默认开启
+    val notificationsEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[NOTIFICATIONS_KEY] ?: true
+    }
+
     suspend fun saveToken(token: String) {
         context.dataStore.edit { prefs ->
             prefs[TOKEN_KEY] = token
@@ -92,6 +99,12 @@ class TokenDataStore(private val context: Context) {
     suspend fun saveLanguage(tag: String) {
         context.dataStore.edit { prefs ->
             prefs[LANGUAGE_KEY] = tag
+        }
+    }
+
+    suspend fun saveNotificationsEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[NOTIFICATIONS_KEY] = enabled
         }
     }
 
